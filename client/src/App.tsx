@@ -62,7 +62,6 @@ function AppContent() {
                 <Route path="/tickets">
                   <TicketListPage
                     onTicketClick={(id) => setLocation(`/tickets/${id}`)}
-                    onCreateTicket={() => setLocation("/tickets/new")}
                   />
                 </Route>
                 <Route path="/tickets/:id">
