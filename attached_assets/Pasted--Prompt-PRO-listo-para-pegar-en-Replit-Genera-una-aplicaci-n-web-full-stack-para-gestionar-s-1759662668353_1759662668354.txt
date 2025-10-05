@@ -1,0 +1,1124 @@
+# Prompt PRO (listo para pegar en Replit)
+
+Genera una **aplicación web full‑stack** para gestionar soporte/tickets para una **única empresa** (primer cliente: una tienda que repara teléfonos). La app recibirá tickets desde un **flujo externo** (p. ej., n8n) mediante un **webhook**; los **agentes humanos** responderán desde la app, y la app podrá **devolver la respuesta** a un endpoint configurable (agnóstico del orquestador). No implementar tiempo real (sin WebSockets/SSE); solo polling en el frontend.
+
+---
+
+## Stack y arquitectura
+
+* **Backend**: Node.js (elige framework sólido; **NestJS** recomendado para la variante PRO por modularidad, DI, validación y testing). ORM: **Prisma**.
+* **Base de datos**: **Supabase (PostgreSQL)**. Usa Prisma para el acceso. Autenticación **Supabase Auth** (email/contraseña). Almacenamiento de adjuntos: **local en disco** (montado en Docker volume) por ahora.
+* **Frontend**: **React + Vite**, **Redux Toolkit** para estado, **Tailwind CSS** para UI, i18n con **react-i18next**.
+* **Infra local**: **Docker Compose** con servicios `api`, `web`, `db` (si no usamos la DB gestionada de Supabase en dev, levantar un Postgres local compatible), y `migrations`.
+* **Testing**: backend con Jest (o Vitest) y supertest; frontend con Vitest + Testing Library.
+* **Linter/format**: ESLint + Prettier.
+* **i18n**: ES por defecto + EN preparado.
+* **Sin multi‑tenant**: la app es **para una sola empresa** (branding propio configurable).
+
+> Nota: Aunque la DB sea Supabase, el backend actuará como **BFF** (Backend For Frontend). Validar los JWT de Supabase en el backend (carga de JWKS de Supabase o verificación por secret) y aplicar autorización por roles (`admin`, `agent`).
+
+---
+
+## Roles
+
+* **admin**: gestiona usuarios, categorías/etiquetas, plantillas, SLA, colores de marca y endpoints externos.
+* **agent**: atiende tickets, usa plantillas, actualiza estados y prioridades.
+
+---
+
+## Modelo de datos (Prisma)
+
+> Sin `companyId` (single‑tenant). Los **clientes** son personas que hacen preguntas: almacenamos sus datos mínimos (nombre + email y/o phone).
+
+```prisma
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  role         Role
+  passwordHash String?  // no se usa si todo el login va por Supabase; mantener por compatibilidad futura
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  tickets      Ticket[] @relation("AssigneeTickets")
+}
+
+enum Role { admin agent }
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?  @unique
+  phone     String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Ticket {
+  id                     String    @id @default(cuid())
+  subject                String
+  body                   String
+  channel                Channel
+  priority               Priority  @default(medium)
+  status                 Status    @default(open)
+  assigneeId             String?   
+  assignee               User?     @relation("AssigneeTickets", fields: [assigneeId], references: [id])
+  externalConversationId String?
+  metadata               Json?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  customerId             String
+  customer               Customer  @relation(fields: [customerId], references: [id])
+  messages               Message[]
+}
+
+enum Channel { whatsapp web email other }
+
+enum Priority { low medium high }
+
+enum Status { open pending_customer pending_agent closed }
+
+model Message {
+  id          String   @id @default(cuid())
+  ticketId    String
+  ticket      Ticket   @relation(fields: [ticketId], references: [id])
+  authorType  AuthorType
+  authorId    String?  // userId cuando authorType=agent, null si customer/system
+  text        String
+  attachments Json?
+  createdAt   DateTime @default(now())
+}
+
+enum AuthorType { customer agent system }
+
+model Template { // plantillas de respuesta
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+}
+
+model SLA { // definición simple por prioridad
+  id             String   @id @default(cuid())
+  priority       Priority @unique
+  firstReplyMins Int      // objetivo de primera respuesta (MTPR target)
+  resolveMins    Int      // objetivo de resolución
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  action    String
+  entity    String
+  entityId  String
+  data      Json?
+  createdAt DateTime @default(now())
+}
+```
+
+---
+
+## API (contratos)
+
+### Auth (via Supabase)
+
+* El frontend usa **Supabase Auth** (email/contraseña). Tras login, el frontend envía el **JWT** en `Authorization: Bearer <token>` a la API.
+* Middleware en la API valida el JWT de Supabase y **inyecta** `req.user = { id, email, role }`.
+
+### Webhooks agnósticos (entrada/salida)
+
+* **Entrada** (desde n8n u otro orquestador): `POST /api/webhooks/inbound/tickets`
+
+  * Header opcional: `X-API-Key: <admin-config>`
+  * Body ejemplo:
+
+    ```json
+    {
+      "external_conversation_id": "abc-123",
+      "customer": {"name":"Juan","email":"juan@mail.com","phone":"+34123456789"},
+      "question": "¿Cuánto tarda cambiar la pantalla?",
+      "channel": "whatsapp",
+      "context": [{"source":"kb://policy#tiempos","snippet":"..."}],
+      "metadata": {"device_model":"iPhone 12", "issue":"screen"},
+      "subject": "Consulta reparación pantalla"
+    }
+    ```
+  * **Comportamiento**: crea (o asocia) `Customer` por email/phone, crea `Ticket` `open` con primer `Message` tipo `customer`.
+
+* **Salida**: cuando un agente responde y marca `final:true`, la API hace `POST {OUTBOUND_REPLY_URL}` (configurable en **Ajustes** o `.env`).
+
+  * Payload:
+
+    ```json
+    {
+      "ticket_id": "<id>",
+      "answer_text": "Texto de la respuesta del agente",
+      "attachments": [{"name":"presupuesto.pdf","url":"/files/.."}],
+      "external_conversation_id": "abc-123",
+      "final": true
+    }
+    ```
+
+### Endpoints principales
+
+* `GET /api/tickets` — filtros: `status`, `assignee`, `priority`, `channel`, `q`, `from`, `to`.
+* `GET /api/tickets/:id` — devuelve ticket + mensajes + cliente.
+* `POST /api/tickets/:id/reply` — body `{ "answer_text": string, "final": boolean, "attachments": Attachment[] }` → crea `Message` `agent` y, si `final`, dispara callback a `{OUTBOUND_REPLY_URL}`.
+* `PATCH /api/tickets/:id` — actualizar `status`, `priority`, `assigneeId`.
+* `GET /api/templates` / `POST /api/templates` CRUD de plantillas.
+* `GET /api/settings/branding` / `PUT /api/settings/branding` — colores y logo.
+* `GET /api/settings/sla` / `PUT /api/settings/sla` — objetivos por prioridad.
+
+> **Asignación**: solo **manual** (no round‑robin). Campo `assigneeId` editable por admin/agent.
+
+---
+
+## UI (React + Tailwind + Redux)
+
+* **Login** (Supabase email/contraseña).
+* **Dashboard** con KPIs y métricas (ver sección métricas).
+* **Bandeja de tickets** con filtros, búsqueda, paginación y polling cada 10–20 s.
+* **Vista de ticket**: hilo de mensajes, panel lateral con datos del cliente + contexto, selector de plantillas, acciones rápidas (cambiar estado/prioridad/asignar, enviar respuesta con `final`).
+* **Ajustes**:
+
+  * **Branding** (colores + logo).
+  * **SLA** por prioridad.
+  * **Endpoints**: `OUTBOUND_REPLY_URL`, `X-API-Key` de inbound.
+  * **Usuarios** (solo admin): alta/baja y rol.
+
+### Theming (Tailwind)
+
+* Definir **CSS variables** para paleta y mapear a Tailwind vía `theme.extend.colors`.
+
+  * Variables principales en `:root` (fichero `src/styles/theme.css`):
+
+    ```css
+    :root {
+      --color-primary: #0ea5e9;  /* primary */
+      --color-secondary: #6366f1;/* secondary */
+      --color-accent: #22c55e;   /* accent */
+      --color-neutral: #111827;  /* neutral */
+      --color-muted: #6b7280;    /* grises */
+      --color-bg: #ffffff;       /* fondo */
+      --color-card: #f9fafb;     /* cards */
+    }
+    .dark:root {
+      --color-bg: #0b1220;
+      --color-card: #0f172a;
+      --color-neutral: #e5e7eb;
+    }
+    ```
+  * `tailwind.config.cjs`:
+
+    ```js
+    theme: {
+      extend: {
+        colors: {
+          primary: 'var(--color-primary)',
+          secondary: 'var(--color-secondary)',
+          accent: 'var(--color-accent)',
+          neutral: 'var(--color-neutral)',
+          muted: 'var(--color-muted)',
+          bg: 'var(--color-bg)',
+          card: 'var(--color-card)'
+        }
+      }
+    }
+    ```
+  * Cambiando estos **hex** se re‑brandeará la app entera.
+
+### i18n (react‑i18next)
+
+* Estructura de namespaces `common`, `tickets`, `settings`, `dashboard`.
+* Idiomas: `es` (default), `en`. Auto‑detect por navigator con fallback `es`.
+* Ejemplo `common.es.json`:
+
+  ```json
+  {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "search": "Buscar...",
+    "assign": "Asignar",
+    "priority": "Prioridad",
+    "status": "Estado"
+  }
+  ```
+
+---
+
+## Métricas y SLAs (incluye MTPR)
+
+* **MTPR** (Mean Time to First Response): promedio entre `Ticket.createdAt` y **primer** `Message` de `authorType=agent`.
+* **Tiempo de resolución**: entre `Ticket.createdAt` y timestamp del cambio a `status=closed`.
+* **SLA por prioridad** (tabla `SLA`): compara objetivos con métricas reales. Mostrar % de tickets dentro/fuera de SLA.
+* **Dashboard KPIs**:
+
+  * Abiertos por estado (`open`, `pending_agent`, `pending_customer`).
+  * MTPR promedio (global y por prioridad).
+  * % cumplimiento SLA (first reply / resolución).
+  * Cerrados hoy/esta semana.
+
+---
+
+## Seguridad
+
+* Middleware de **auth**: verificar JWT de Supabase. Rechazar si no válido.
+* **Rate limit** al webhook de entrada por `X-API-Key` (configurable) y por IP.
+* Sanitización de HTML y validación de adjuntos (extensión, tamaño máx configurable).
+* Logs de auditoría en cambios de estado/asignación/respuestas.
+
+---
+
+## Configuración y entorno
+
+* **.env ejemplo**
+
+  ```env
+  # API
+  PORT=3000
+  NODE_ENV=development
+  JWT_SUPABASE_JWKS_URL=https://<your-project>.supabase.co/auth/v1/keys
+  INBOUND_API_KEY=dev_key_123
+  OUTBOUND_REPLY_URL=http://localhost:5678/webhook/reply
+
+  # DB (si usas Supabase gestionado, usa su connection string)
+  DATABASE_URL=postgresql://postgres:postgres@db:5432/support
+
+  # STORAGE local
+  FILE_STORAGE_DIR=/data/files
+  MAX_UPLOAD_MB=10
+  ```
+* **Docker Compose**
+
+  * Servicios: `api` (Node), `web` (Vite dev server), `db` (Postgres 15), `pgadmin` opcional.
+  * Volúmenes: `./data/files:/data/files` para adjuntos.
+
+---
+
+## Flujo de trabajo
+
+1. **Crear ticket por webhook** (`/api/webhooks/inbound/tickets`) → aparece en bandeja “No asignados” (o sin asignar).
+2. **Agente** abre el ticket, usa **plantillas** y responde; puede marcar `final:true` si desea cerrar el ciclo con el cliente vía `{OUTBOUND_REPLY_URL}`.
+3. Cambios de estado (`open ↔ pending_* ↔ closed`) manuales.
+4. KPIs y métricas calculadas por consultas agregadas (o vistas/materializadas si hiciera falta en el futuro).
+
+---
+
+## Testing mínimo
+
+* Crea ticket vía webhook (201) y genera `Message` inicial `customer`.
+* Responder ticket → crea `Message` `agent` y dispara callback si `final:true`.
+* Autorización: endpoints `tickets/*` rechazan sin JWT válido.
+* Filtros de `GET /api/tickets` por `status`, `priority`, `channel` y `q`.
+
+---
+
+## Seed
+
+* Crear 1 admin y 2 agentes.
+* 1 SLA por prioridad (`low=1440min`, `medium=480min`, `high=120min`).
+* 5 clientes demo (con email/phone mixto).
+* 8 tickets de ejemplo con distintos estados, canales y prioridades + mensajes.
+
+---
+
+## Aceptación / QA
+
+* Webhook de entrada crea ticket y lo vemos en UI tras el siguiente ciclo de **polling** (< 20 s).
+* Respuesta con `final:true` → `POST {OUTBOUND_REPLY_URL}` con el contrato exacto.
+* MTPR y % SLA se calculan y muestran en dashboard.
+* Cambiando las variables CSS de **theme** se re‑brandéa toda la app.
+* i18n cambia entre ES/EN desde el UI (selector simple en el header).
+
+---
+
+## Extras (opcional, TODOs marcados)
+
+*
+* **Adjuntos**: endpoint `POST /api/files` con validación y devuelve URL local.
+* **Importación** de clientes desde CSV simple (solo admin).
+* **Etiquetas** de ticket (tags) para clasificación; filtro por tags.
+* **Rutas**: `/login`, `/tickets`, `/tickets/:id`, `/settings`, `/dashboard`.
+* **Accesibilidad**: atajos de teclado (p. ej., `R` para responder, `A` para asignar).
+
+---
+
+## Notas de implementación
+
+* **Validación** con Zod/DTOs en NestJS; controladores del API con Swagger.
+* **Redux Toolkit** slices: `auth`, `tickets`, `templates`, `settings`, `metrics`.
+* **Polling** con `setInterval`/`RTK Query` refetchInterval.
+* **Formateo** de fechas con `date-fns` (locale es/ en).
+
+---
+
+## README que debe generarse
+
+* Instrucciones `docker compose up -d` → `pnpm i` → `pnpm prisma migrate dev` → `pnpm dev` en `api` y `web`.
+* Cómo configurar Supabase (URL del JWKS y project URL) y variables `.env`.
+* Endpoints del API con ejemplos `curl`.
+* Cómo cambiar branding (variables CSS) y cómo añadir/lanzar traducciones.
+
+---
+
+Si alguna ambigüedad menor surge, usa convenciones estándar y deja TODOs claros en comentarios. Implementa el esqueleto completo con las rutas, páginas y componentes descritos, más pruebas básicas y un **seed** reproducible.
+
+---
+
+## Paleta por defecto (lista para usar y rebrandear)
+
+Incluye **neutros**, **accent**, y variables semánticas para **status** y **priority**. Cambiando unos pocos hex (accent/neutros) puedes re‑skin de marca.
+
+### CSS variables base (`src/styles/theme.css`)
+
+```css
+:root {
+  /* Neutrales */
+  --neutral-0: #FFFFFF;
+  --neutral-50: #F7F7F8;
+  --neutral-100: #EFEFF1;
+  --neutral-200: #E4E6EA;
+  --neutral-300: #D3D6DC;
+  --neutral-400: #A9AFBA;
+  --neutral-500: #80889A;
+  --neutral-600: #636A7A;
+  --neutral-700: #4B5160;
+  --neutral-800: #333845;
+  --neutral-900: #1F2330;
+
+  /* Accent (primario/links) */
+  --accent-50:  #EEF5FF;
+  --accent-100: #D9E9FF;
+  --accent-200: #B6D3FF;
+  --accent-300: #8AB8FF;
+  --accent-400: #5A97FF;
+  --accent-500: #3277FF;
+  --accent-600: #1A5EEC;
+  --accent-700: #174FC3;
+  --accent-800: #153F9A;
+  --accent-900: #102B66;
+
+  /* Superficies y texto */
+  --bg: var(--neutral-0);
+  --surface: #F9FAFB;
+  --text: var(--neutral-900);
+  --muted: var(--neutral-600);
+  --border: var(--neutral-200);
+
+  /* Feedback */
+  --success: #16A34A;
+  --warning: #D97706;
+  --error:   #DC2626;
+  --info:    #2563EB;
+
+  /* Status (color/texto) */
+  --status-new:        var(--neutral-400);
+  --status-new-bg:     var(--neutral-50);
+  --status-open:       #2563EB;
+  --status-open-bg:    #E8F0FF;
+  --status-waiting:    #D97706;
+  --status-waiting-bg: #FFF6E6;
+  --status-onhold:     #7C3AED;
+  --status-onhold-bg:  #F5EEFF;
+  --status-resolved:   #16A34A;
+  --status-resolved-bg:#EAF7EE;
+  --status-closed:     var(--neutral-600);
+  --status-closed-bg:  #F1F2F6;
+
+  /* Prioridad */
+  --prio-low:    #10B981; --prio-low-bg:    #E7F6F1;
+  --prio-normal: #3B82F6; --prio-normal-bg: #E8F0FF;
+  --prio-high:   #F97316; --prio-high-bg:   #FFF1E8;
+  --prio-urgent: #DC2626; --prio-urgent-bg: #FFE7E7;
+
+  /* Focus & radii */
+  --focus: var(--accent-500);
+  --radius-sm: 6px; /* chips */
+  --radius-md: 10px; /* cards */
+  --radius-lg: 16px; /* modals */
+}
+
+/**** Dark mode (opcional) ****/
+.dark :root {
+  --bg: #0B1220;
+  --surface: #0F172A;
+  --text: var(--neutral-50);
+  --muted: var(--neutral-300);
+  --border: color-mix(in oklab, var(--neutral-700), white 10%);
+}
+```
+
+### Tailwind config (`tailwind.config.cjs`)
+
+```js
+module.exports = {
+  theme: {
+    extend: {
+      colors: {
+        bg: 'var(--bg)',
+        surface: 'var(--surface)',
+        text: 'var(--text)',
+        muted: 'var(--muted)',
+        border: 'var(--border)',
+        primary: 'var(--accent-500)',
+        success: 'var(--success)',
+        warning: 'var(--warning)',
+        error: 'var(--error)',
+        info: 'var(--info)'
+      },
+      borderRadius: {
+        sm: 'var(--radius-sm)',
+        md: 'var(--radius-md)',
+        lg: 'var(--radius-lg)'
+      },
+      boxShadow: {
+        1: '0 1px 2px rgba(0,0,0,.06)',
+        2: '0 3px 8px rgba(0,0,0,.10)',
+        3: '0 10px 30px rgba(0,0,0,.18)'
+      }
+    }
+  }
+}
+```
+
+---
+
+## Guía de maquetación y estilo (moderno · minimalista · elegante)
+
+Incluye **principios**, **tokens**, **layouts** y **componentes** listos para implementar. Úsalo como referencia de diseño + reglas de lint visual.
+
+### 1) Principios de la interfaz
+
+* **Claridad sobre densidad**: jerarquías claras; conmutador `Comfortable/Compact`.
+* **Estado y prioridad son el color**: UI neutra; el color comunica `status/priority`.
+* **Consistencia semántica**: tokens `--status-*`, `--prio-*`.
+* **Accesibilidad by default**: contraste AA/AAA, foco visible, targets ≥ 24px.
+* **Motion con propósito**: 120–200ms; sin animaciones infinitas.
+
+### 2) Tokens (diseño & código)
+
+* **Tipografía**: Inter 600 (headings), 400/500 (texto). Tamaños: 12,14,16,18,20,24,30. `line-height`: 1.4 (listas) / 1.6 (lectura). Numerales tabulares en métricas.
+* **Espaciado**: 4,8,12,16,20,24,32,40. **Bordes**: 1px `--neutral-200`; foco 2px `--accent-500` + ring `--accent-100`.
+* **Sombras**: `shadow-1`/`shadow-2`/`shadow-3` como arriba.
+* **Duraciones**: micro 120ms; UI 180ms; entradas 200ms.
+
+### 5) Patrones de layout
+
+* **App Shell**: header 56px (sticky), sidebar 72→240px, contenido hasta 1280px, panel derecho 320–360px.
+* **Responsive**: ≥1280 (nav/lista/detalle), 1024–1279 (lista/detalle), ≤1023 (una columna; drawers).
+* **Listado de tickets**: densidad conmutables; columnas: ID, Asunto, Estado, Prioridad, Asignado, Últ. actividad, SLA.
+* **Detalle de ticket**: chips de estado/prioridad, timeline, composer, metadatos (requester, canal, SLA, etiquetas).
+
+### 6) Componentes clave
+
+* **Badge Status/Priority** (ejemplo):
+
+```html
+<span class="inline-flex items-center gap-1 rounded-sm px-2 py-1 text-xs font-medium border"
+      style="--c:var(--status-open); --bg:var(--status-open-bg); color:var(--c); background:var(--bg); border-color:color-mix(in oklab, var(--c), #000 15%);">
+  <svg aria-hidden="true" class="size-3"></svg> Open
+</span>
+```
+
+* **Card de ticket**: grid de dos columnas, `hover:shadow-2`, metadatos a la derecha.
+* **Tabla compacta**: zebra suave (3%), foco visible `outline`.
+* **Timeline**: agrupa eventos del sistema; timestamps absolutos on‑hover; chips para adjuntos.
+* **Filtros & búsqueda**: chips guardables; query grammar `status:open assignee:me before:7d`.
+* **Empty states**: ilustración mínima + CTA.
+* **Loading**: skeletons de 3–6 tarjetas.
+
+### 7) Accesibilidad
+
+* Contraste: texto ≥ 4.5:1; badges ≥ 3:1 con tamaño ≥ 12px/500.
+* Foco visible; `scroll-margin-top: 80px` para encabezados anclados.
+* Teclado completo + “Skip to content”.
+
+### 8) Iconografía
+
+* Outline 1.5px, base 16px; relleno solo para críticos. Mapear: Open ⏳, Waiting ⏱️, On hold ⏸️, Resolved ✅, Closed ✔️.
+
+### 9) Microcopy
+
+* Etiquetas ≤ 3 palabras; verbos activos; errores con acción clara.
+
+### 11) Data viz
+
+* Números tabulares; monocromo + acentos para rojos/ámbar; widgets: MTPR, abiertos por prioridad, % SLA.
+
+### 13) Tematización por marca
+
+* Mantener semánticas `--status-*`/`--prio-*`; variar neutros/accent. Validar contraste en CI visual.
+
+````
+
+---
+
+## Seed avanzado (Prisma) — `prisma/seed.ts`
+Crea roles, SLAs, usuarios (1 admin, 2 agentes), 5 clientes, 10 tickets con estados variados, mensajes coherentes y tiempos para medir **MTPR** y SLA.
+
+```ts
+import { PrismaClient, Priority, Status, AuthorType, Role } from '@prisma/client'
+import { addMinutes, subHours, subDays } from 'date-fns'
+
+const prisma = new PrismaClient()
+
+async function main() {
+  // SLAs
+  await prisma.sLA.upsert({
+    where: { priority: 'low' },
+    update: {},
+    create: { priority: 'low', firstReplyMins: 1440, resolveMins: 2880 }
+  })
+  await prisma.sLA.upsert({
+    where: { priority: 'medium' },
+    update: {},
+    create: { priority: 'medium', firstReplyMins: 480, resolveMins: 1440 }
+  })
+  await prisma.sLA.upsert({
+    where: { priority: 'high' },
+    update: {},
+    create: { priority: 'high', firstReplyMins: 120, resolveMins: 480 }
+  })
+
+  // Usuarios
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@demo.local' },
+    update: {},
+    create: { name: 'Admin Demo', email: 'admin@demo.local', role: Role.admin }
+  })
+  const agent1 = await prisma.user.upsert({
+    where: { email: 'agente1@demo.local' },
+    update: {},
+    create: { name: 'María Agente', email: 'agente1@demo.local', role: Role.agent }
+  })
+  const agent2 = await prisma.user.upsert({
+    where: { email: 'agente2@demo.local' },
+    update: {},
+    create: { name: 'Luis Agente', email: 'agente2@demo.local', role: Role.agent }
+  })
+
+  // Clientes
+  const customers = await Promise.all([
+    { name: 'Juan Pérez',  email: 'juan@example.com',  phone: '+34111111111' },
+    { name: 'Ana Gómez',   email: 'ana@example.com',   phone: '+34222222222' },
+    { name: 'Carlos Ruiz', email: 'carlos@example.com',phone: '+34333333333' },
+    { name: 'Laura Gil',   email: 'laura@example.com', phone: '+34444444444' },
+    { name: 'Marta Soler', email: 'marta@example.com', phone: '+34555555555' }
+  ].map(c => prisma.customer.upsert({ where: { email: c.email! }, update: {}, create: c })))
+
+  // Tickets helper
+  const now = new Date()
+  const pick = <T,>(arr: T[]) => arr[Math.floor(Math.random()*arr.length)]
+
+  const subjects = [
+    'Pantalla rota iPhone 12',
+    'Batería se descarga rápido',
+    'No enciende después de caída',
+    'Micrófono no funciona',
+    'Cambio de cubierta trasera',
+    'Presupuesto reparación',
+    'Garantía y tiempos',
+    'Transferencia de datos',
+    'Humedad en cámara',
+    'Altavoz distorsiona'
+  ]
+
+  for (let i=0; i<10; i++) {
+    const createdAt = subDays(now, Math.floor(Math.random()*7))
+    const cust = pick(customers)
+    const prio = pick([Priority.low, Priority.medium, Priority.high])
+    const status = pick([Status.open, Status.pending_agent, Status.pending_customer, Status.closed])
+
+    const ticket = await prisma.ticket.create({
+      data: {
+        subject: subjects[i],
+        body: 'Descripción enviada por el cliente sobre su incidente... ',
+        channel: 'web',
+        priority: prio,
+        status,
+        customer: { connect: { id: cust.id } },
+        createdAt
+      }
+    })
+
+    // Mensaje inicial del cliente
+    await prisma.message.create({
+      data: {
+        ticketId: ticket.id,
+        authorType: AuthorType.customer,
+        text: 'Hola, necesito ayuda con mi dispositivo.',
+        createdAt
+      }
+    })
+
+    // Primera respuesta del agente (para medir MTPR)
+    const firstReplyAt = addMinutes(createdAt, [30, 90, 240][Math.floor(Math.random()*3)])
+    await prisma.message.create({
+      data: {
+        ticketId: ticket.id,
+        authorType: AuthorType.agent,
+        authorId: pick([agent1.id, agent2.id]),
+        text: 'Gracias por contactarnos, reviso tu caso.',
+        createdAt: firstReplyAt
+      }
+    })
+
+    // Cierre opcional
+    if (status === Status.closed) {
+      await prisma.message.create({
+        data: {
+          ticketId: ticket.id,
+          authorType: AuthorType.agent,
+          authorId: pick([agent1.id, agent2.id]),
+          text: 'Incidente resuelto. Cerramos el ticket. ¡Gracias!'
+        }
+      })
+    }
+  }
+
+  // Plantillas
+  await prisma.template.createMany({ data: [
+    { title: 'Saludo inicial', content: 'Hola {{customer_name}}, gracias por contactarnos…' },
+    { title: 'Presupuesto base', content: 'El costo estimado es de {{amount}} € + IVA…' },
+    { title: 'Cierre con encuesta', content: 'Damos por resuelto el caso. ¿Puedes valorar tu experiencia? …' }
+  ]})
+}
+
+main().then(()=>console.log('Seed completo'))
+  .catch(e=>{ console.error(e); process.exit(1); })
+  .finally(()=>prisma.$disconnect())
+````
+
+> Añade al `package.json` del API: `"prisma": { "seed": "ts-node prisma/seed.ts" }` y ejecuta `pnpm prisma db seed`.
+
+---
+
+## Swagger / OpenAPI inicial (pegar en `openapi.yaml`)
+
+```yaml
+openapi: 3.0.3
+info:
+  title: Support Tickets API
+  version: 0.1.0
+servers:
+  - url: http://localhost:3000
+security:
+  - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Customer:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+    Message:
+      type: object
+      properties:
+        id: { type: string }
+        authorType: { type: string, enum: [customer, agent, system] }
+        authorId: { type: string, nullable: true }
+        text: { type: string }
+        attachments:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              url: { type: string }
+        createdAt: { type: string, format: date-time }
+    Ticket:
+      type: object
+      properties:
+        id: { type: string }
+        subject: { type: string }
+        body: { type: string }
+        channel: { type: string, enum: [whatsapp, web, email, other] }
+        priority: { type: string, enum: [low, medium, high] }
+        status: { type: string, enum: [open, pending_customer, pending_agent, closed] }
+        assigneeId: { type: string, nullable: true }
+        externalConversationId: { type: string, nullable: true }
+        metadata: { type: object, additionalProperties: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        customer: { $ref: '#/components/schemas/Customer' }
+        messages:
+          type: array
+          items: { $ref: '#/components/schemas/Message' }
+    Template:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        content: { type: string }
+    SLA:
+      type: object
+      properties:
+        id: { type: string }
+        priority: { type: string, enum: [low, medium, high] }
+        firstReplyMins: { type: integer }
+        resolveMins: { type: integer }
+paths:
+  /api/webhooks/inbound/tickets:
+    post:
+      summary: Inbound webhook to create a ticket
+      security: []
+      parameters:
+        - in: header
+          name: X-API-Key
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                external_conversation_id: { type: string }
+                customer: { $ref: '#/components/schemas/Customer' }
+                question: { type: string }
+                channel: { type: string, enum: [whatsapp, web, email, other] }
+                context:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      source: { type: string }
+                      snippet: { type: string }
+                metadata: { type: object }
+                subject: { type: string }
+      responses:
+        '201': { description: Created }
+        '400': { description: Bad Request }
+        '401': { description: Unauthorized }
+  /api/tickets:
+    get:
+      summary: List tickets
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: assignee
+          schema: { type: string }
+        - in: query
+          name: priority
+          schema: { type: string }
+        - in: query
+          name: channel
+          schema: { type: string }
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: from
+          schema: { type: string, format: date-time }
+        - in: query
+          name: to
+          schema: { type: string, format: date-time }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Ticket' }
+  /api/tickets/{id}:
+    get:
+      summary: Get a ticket
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ticket' }
+  /api/tickets/{id}/reply:
+    post:
+      summary: Reply to a ticket
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                answer_text: { type: string }
+                final: { type: boolean }
+                attachments:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name: { type: string }
+                      url: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/templates:
+    get:
+      summary: List templates
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Template' }
+    post:
+      summary: Create template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Template' }
+      responses:
+        '201': { description: Created }
+  /api/settings/sla:
+    get:
+      summary: Get SLA config
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/SLA' }
+    put:
+      summary: Update SLA config
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { $ref: '#/components/schemas/SLA' }
+      responses:
+        '200': { description: Updated }
+  /api/settings/branding:
+    get:
+      summary: Get branding
+      responses:
+        '200': { description: OK }
+    put:
+      summary: Update branding (colors/logo)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                logoUrl: { type: string }
+                colors:
+                  type: object
+                  additionalProperties: { type: string }
+      responses:
+        '200': { description: Updated }
+```
+
+> En NestJS, monta Swagger con `@nestjs/swagger` y sirve este esquema en `/docs` (o genera desde decoradores y exporta YAML).
+
+---
+
+## Docker Compose – base con volúmenes (adjuntos) y DB local
+
+Incluye una **opción A (PostgreSQL local)** simple y estable para desarrollo, y una **opción B (Supabase local)** recomendada vía **Supabase CLI**. La app usa **adjuntos en disco** mediante volumen `files-data`.
+
+### `docker-compose.yml`
+
+```yaml
+version: '3.9'
+
+name: support-app
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: support-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: support
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d support"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ./api
+    container_name: support-api
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - ./api/.env
+    environment:
+      # Opción A (Postgres local)
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/support
+      FILE_STORAGE_DIR: /data/files
+    ports:
+      - "3000:3000"
+    volumes:
+      - files-data:/data/files
+      - ./api:/app
+    command: sh -c "pnpm prisma migrate deploy && pnpm dev"
+
+  web:
+    build: ./web
+    container_name: support-web
+    env_file:
+      - ./web/.env
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./web:/app
+    command: sh -c "pnpm dev --host 0.0.0.0"
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: support-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+
+volumes:
+  db-data:
+  files-data:
+  pgadmin-data:
+```
+
+> **Opción B – Supabase local**: para usar Auth/Edge/PostgREST/realtime localmente, es más sencillo con **Supabase CLI**:
+>
+> 1. Instala CLI y ejecuta `supabase start` en el root del proyecto. Esto levanta los servicios (incluye Postgres).
+> 2. Copia `SUPABASE_URL`, `SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY` que imprime la CLI.
+> 3. En `api/.env` y `web/.env`, configura:
+>
+>    ```env
+>    SUPABASE_URL=http://localhost:54321
+>    SUPABASE_ANON_KEY=...
+>    SUPABASE_SERVICE_ROLE_KEY=...
+>    # Si usas DB de Supabase local, ajusta también:
+>    DATABASE_URL=postgresql://postgres:postgres@localhost:54322/postgres
+>    ```
+> 4. Detén `db` del compose (para evitar conflicto de puertos) y apunta la API a la DB de Supabase.
+>
+> *Nota:* también puedes apuntar a **Supabase gestionado** en la nube cambiando `SUPABASE_URL` y las claves.
+
+---
+
+## Principios de ingeniería: Clean Code · Buenas prácticas · Arquitectura Hexagonal · DDD
+
+Aplica estos lineamientos en **API** y **Frontend**.
+
+### 1) Clean Code & buenas prácticas
+
+* **Nombres semánticos** y consistentes (ubiquitous language de soporte: ticket, mensaje, SLA, MTPR…).
+* **Funciones pequeñas** con una sola responsabilidad; early-returns; evita efectos colaterales.
+* **Tipos/DTOs** y **validación** (Zod/DTOs) en los límites del sistema (webhooks/REST/DB).
+* **Errores** tipados (clases `DomainError`, `ValidationError`) y mapeo HTTP uniforme.
+* **Logs estructurados** (pino) con correlación de petición.
+* **Testing pirámide**: unit > integration > e2e mínimo para flujos críticos.
+
+### 2) Arquitectura hexagonal (Ports & Adapters)
+
+**Back (Node/NestJS)**
+
+```
+src/
+  domain/                # entidades, value objects, reglas DDD
+    ticket/
+      Ticket.ts
+      TicketStatus.ts
+      events/
+  application/           # casos de uso (servicios) puros
+    CreateTicketUseCase.ts
+    ReplyToTicketUseCase.ts
+    ComputeMetricsUseCase.ts
+    ports/               # interfaces (in/out)
+      TicketRepository.ts
+      MessageBus.ts
+      StoragePort.ts
+  infrastructure/        # adapters a mundo real
+    prisma/
+      TicketPrismaRepo.ts
+    http/
+      controllers/
+      dto/
+    storage/
+      LocalStorageAdapter.ts
+    outbounds/
+      OutboundReplyHttp.ts
+  config/
+  main.ts
+```
+
+* **Ports**: `TicketRepository`, `TemplateRepository`, `SLARepository`, `OutboundReplyPort`, `StoragePort`.
+* **Adapters**: Prisma repos, HTTP webhook controller, HTTP client para `OUTBOUND_REPLY_URL`, file storage local.
+* **Casos de uso** orquestan dominio y son **agnósticos** de framework.
+
+**Front (React + Vite + Redux Toolkit)**
+
+```
+src/
+  app/                   # store, rutas, providers (i18n, theme)
+  shared/                # ui, hooks, lib, icons
+  features/
+    auth/
+    tickets/
+      api/               # RTK Query slices
+      components/
+      pages/
+      model/             # types, selectors
+    settings/
+    dashboard/
+```
+
+* **Slices por feature**, RTK Query para datos, componentes puros + contenedores mínimos.
+* **Ubiquitous language** también en front (Ticket, Message, SLA, MTPR, Priority, Status).
+
+### 3) DDD (Domain-Driven Design)
+
+* **Bounded Context**: *Support* (tickets, mensajes, SLA, métricas).
+* **Entidades**: `Ticket`, `Message`, `Customer`; **VOs**: `TicketId`, `Email`, `Phone`, `Priority`, `Status`.
+* **Agregados**: `Ticket` como raíz (invariante: historial consistente, reglas de transición de estado).
+* **Eventos de Dominio**: `TicketCreated`, `FirstAgentReplyAdded`, `TicketClosed` (útiles para métricas/SLAs).
+* **Reglas**: transiciones válidas (`open → pending_* → closed`), cálculo de SLA/MTPR en aplicación, no en UI.
+* **Repositorios** por agregado; **servicios de dominio** solo si hay lógica transversal.
+
+### 4) Calidad & DX
+
+* **Convenciones**: commitlint + conventional commits; husky + lint-staged.
+* **CI**: lint, typecheck, tests, generación de Swagger, validación de contraste (tokens) opcional.
+* **Observabilidad**: healthchecks, métricas básicas (p95 API), trazas opcionales.
+
+---
