@@ -84,14 +84,23 @@
     "create": {
       "title": "Crear Nuevo Ticket",
       "subject": "Asunto",
+      "subjectPlaceholder": "Describe brevemente el problema...",
       "customerName": "Nombre del cliente",
+      "customerNamePlaceholder": "Nombre completo del cliente",
       "customerEmail": "Email del cliente",
+      "customerEmailPlaceholder": "cliente@ejemplo.com",
       "customerPhone": "Teléfono del cliente",
+      "customerPhonePlaceholder": "+34 600 000 000",
       "priority": "Prioridad",
       "channel": "Canal",
       "initialMessage": "Mensaje inicial",
+      "initialMessagePlaceholder": "Escribe el mensaje del cliente...",
       "create": "Crear Ticket",
-      "creating": "Creando..."
+      "creating": "Creando...",
+      "success": "Ticket creado exitosamente",
+      "error": "No se pudo crear el ticket",
+      "selectPriority": "Selecciona la prioridad",
+      "selectChannel": "Selecciona el canal"
     },
     "noTickets": "No hay tickets disponibles",
     "loading": "Cargando tickets..."

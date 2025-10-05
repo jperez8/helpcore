@@ -84,14 +84,23 @@
     "create": {
       "title": "Create New Ticket",
       "subject": "Subject",
+      "subjectPlaceholder": "Briefly describe the issue...",
       "customerName": "Customer name",
+      "customerNamePlaceholder": "Customer full name",
       "customerEmail": "Customer email",
+      "customerEmailPlaceholder": "customer@example.com",
       "customerPhone": "Customer phone",
+      "customerPhonePlaceholder": "+1 555 000 0000",
       "priority": "Priority",
       "channel": "Channel",
       "initialMessage": "Initial message",
+      "initialMessagePlaceholder": "Write the customer's message...",
       "create": "Create Ticket",
-      "creating": "Creating..."
+      "creating": "Creating...",
+      "success": "Ticket created successfully",
+      "error": "Could not create ticket",
+      "selectPriority": "Select priority",
+      "selectChannel": "Select channel"
     },
     "noTickets": "No tickets available",
     "loading": "Loading tickets..."
