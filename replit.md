@@ -42,7 +42,10 @@ Full-stack ticket/support management system with webhook integration for n8n, ma
 ### Database
 - PostgreSQL via Supabase (schema ready, using in-memory for development)
 - Tables: users, tickets, messages, activity_logs
+- `activity_logs` rows capture the timeline of tickets (`ticket_id`, `actor`, `action`, `entity`, optional JSON `metadata`, timestamps)
 - Drizzle migrations generated and ready
+
+> **Importante:** la primera persona que inicia sesión se auto-crea como admin en la tabla `users`. El resto de usuarios deben existir en `users` (se vinculan por correo) para que la gestión y los logs funcionen correctamente.
 
 ## Project Architecture
 
@@ -83,7 +86,9 @@ client/src/
 
 ### Activity & Users
 - `GET /api/activity` - Get activity logs
-- `GET /api/users` - Get all users
+- `GET /api/users` - Get all users (requires admin role)
+- `POST /api/users` - Create a new user (admin only)
+- `PATCH /api/users/:id` - Update user name/email/role (admin only)
 
 ### Webhooks
 - `POST /webhook/inbound` - Receive tickets from n8n (requires x-api-key header)
@@ -96,6 +101,7 @@ client/src/
 - `WEBHOOK_API_KEY` - API key for webhook authentication (defaults to "dev_key_123")
 - `SESSION_SECRET` - Session secret for authentication
 - `PORT` - Server port (default: 5000)
+- `SUPABASE_SERVICE_ROLE_KEY` - (opcional pero recomendado) clave service role para crear/actualizar usuarios desde el backend
 
 ## User Preferences
 - Design: Glassmorphism aesthetic with smooth transitions and skeleton loading states

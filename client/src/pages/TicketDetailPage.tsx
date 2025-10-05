@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Select,
   SelectContent,
@@ -28,21 +29,47 @@ interface TicketDetailPageProps {
   onBack?: () => void;
 }
 
+type TicketStatus = "open" | "pending_customer" | "pending_agent" | "closed";
+type TicketPriority = "low" | "medium" | "high";
+
+const STATUS_OPTIONS: Array<{ value: TicketStatus; label: string; description: string }> = [
+  { value: "open", label: "Abierto", description: "El ticket está activo" },
+  { value: "pending_agent", label: "Pendiente Agente", description: "Esperando respuesta del equipo" },
+  { value: "pending_customer", label: "Pendiente Cliente", description: "Esperando respuesta del cliente" },
+  { value: "closed", label: "Cerrado", description: "Ticket resuelto" },
+];
+
+const PRIORITY_OPTIONS: Array<{ value: TicketPriority; label: string; description: string }> = [
+  { value: "low", label: "Baja", description: "Puede esperar" },
+  { value: "medium", label: "Media", description: "Atender pronto" },
+  { value: "high", label: "Alta", description: "Atención inmediata" },
+];
+
 export default function TicketDetailPage({ onBack }: TicketDetailPageProps) {
   const { id } = useParams<{ id: string }>();
   const [replyText, setReplyText] = useState("");
+  const [pendingStatus, setPendingStatus] = useState<TicketStatus | null>(null);
+  const [pendingPriority, setPendingPriority] = useState<TicketPriority | null>(null);
   const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const { data, isLoading, isError, error } = useQuery<{ ticket: Ticket; messages: Message[] }>({
     queryKey: [`/api/tickets/${id}`],
     enabled: !!id,
   });
 
-  const sendMessageMutation = useMutation({
+  const sendMessageMutation = useMutation<Message, Error, string>({
     mutationFn: async (text: string) => {
-      return await apiRequest("POST", `/api/tickets/${id}/messages`, { text });
+      const payload = {
+        text,
+        authorType: user ? "agent" : "customer",
+        authorName: actorName,
+        authorId: actorId,
+      };
+      const response = await apiRequest("POST", `/api/tickets/${id}/messages`, payload);
+      return (await response.json()) as Message;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/tickets/${id}`] });
@@ -58,6 +85,81 @@ export default function TicketDetailPage({ onBack }: TicketDetailPageProps) {
         description: "No se pudo enviar el mensaje",
         variant: "destructive",
       });
+    },
+  });
+
+  const actorName = user
+    ? ((user?.user_metadata as { full_name?: string } | undefined)?.full_name || user.email || "Agente")
+    : "Cliente";
+  const actorId = user?.id ?? null;
+
+  const updateStatusMutation = useMutation<Ticket, Error, TicketStatus>({
+    mutationFn: async (newStatus) => {
+      const response = await apiRequest("PATCH", `/api/tickets/${id}/status`, {
+        status: newStatus,
+        actorName,
+        actorId,
+      });
+      return (await response.json()) as Ticket;
+    },
+    onMutate: (newStatus) => {
+      setPendingStatus(newStatus);
+    },
+    onSuccess: (updatedTicket) => {
+      queryClient.setQueryData([`/api/tickets/${id}`], (prev) => {
+        if (!prev) return prev;
+        return { ...prev, ticket: updatedTicket };
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
+      toast({
+        title: t("common.success"),
+        description: `Estado actualizado a ${STATUS_OPTIONS.find((opt) => opt.value === updatedTicket.status)?.label ?? updatedTicket.status}`,
+      });
+    },
+    onError: (mutationError) => {
+      toast({
+        title: t("common.error"),
+        description: mutationError instanceof Error ? mutationError.message : "No se pudo actualizar el estado",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      setPendingStatus(null);
+    },
+  });
+
+  const updatePriorityMutation = useMutation<Ticket, Error, TicketPriority>({
+    mutationFn: async (newPriority) => {
+      const response = await apiRequest("PATCH", `/api/tickets/${id}/priority`, {
+        priority: newPriority,
+        actorName,
+        actorId,
+      });
+      return (await response.json()) as Ticket;
+    },
+    onMutate: (newPriority) => {
+      setPendingPriority(newPriority);
+    },
+    onSuccess: (updatedTicket) => {
+      queryClient.setQueryData([`/api/tickets/${id}`], (prev) => {
+        if (!prev) return prev;
+        return { ...prev, ticket: updatedTicket };
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
+      toast({
+        title: t("common.success"),
+        description: `Prioridad actualizada a ${PRIORITY_OPTIONS.find((opt) => opt.value === updatedTicket.priority)?.label ?? updatedTicket.priority}`,
+      });
+    },
+    onError: (mutationError) => {
+      toast({
+        title: t("common.error"),
+        description: mutationError instanceof Error ? mutationError.message : "No se pudo actualizar la prioridad",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      setPendingPriority(null);
     },
   });
 
@@ -94,6 +196,11 @@ export default function TicketDetailPage({ onBack }: TicketDetailPageProps) {
   const getUserInitials = (name: string) => {
     return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
   };
+
+  const currentStatus = (pendingStatus ?? ticket.status) as TicketStatus;
+  const currentPriority = (pendingPriority ?? ticket.priority) as TicketPriority;
+  const statusOption = STATUS_OPTIONS.find((option) => option.value === currentStatus);
+  const priorityOption = PRIORITY_OPTIONS.find((option) => option.value === currentPriority);
 
   return (
     <div className="h-full flex flex-col">
@@ -213,16 +320,65 @@ export default function TicketDetailPage({ onBack }: TicketDetailPageProps) {
 
           <div>
             <h3 className="text-sm font-semibold mb-3">Acciones Rápidas</h3>
-            <div className="space-y-2">
-              <Button variant="outline" className="w-full glass-sm justify-start" data-testid="button-change-status">
-                Cambiar Estado
-              </Button>
-              <Button variant="outline" className="w-full glass-sm justify-start" data-testid="button-change-priority">
-                Cambiar Prioridad
-              </Button>
-              <Button variant="outline" className="w-full glass-sm justify-start" data-testid="button-use-template">
-                Usar Plantilla
-              </Button>
+            <div className="space-y-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Estado</p>
+                <Select
+                  value={currentStatus}
+                  onValueChange={(value) => {
+                    const nextStatus = value as TicketStatus;
+                    const active = pendingStatus ?? (ticket.status as TicketStatus);
+                    if (nextStatus === active) return;
+                    updateStatusMutation.mutate(nextStatus);
+                  }}
+                  disabled={updateStatusMutation.isPending}
+                >
+                <SelectTrigger className="glass-sm w-full justify-between" data-testid="select-status-change">
+                  <span className="truncate text-sm font-medium">
+                    {statusOption?.label ?? currentStatus}
+                  </span>
+                </SelectTrigger>
+                  <SelectContent className="glass max-h-60">
+                    {STATUS_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value} className="py-2">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-medium">{option.label}</span>
+                          <span className="text-xs text-muted-foreground">{option.description}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Prioridad</p>
+                <Select
+                  value={currentPriority}
+                  onValueChange={(value) => {
+                    const nextPriority = value as TicketPriority;
+                    const active = pendingPriority ?? (ticket.priority as TicketPriority);
+                    if (nextPriority === active) return;
+                    updatePriorityMutation.mutate(nextPriority);
+                  }}
+                  disabled={updatePriorityMutation.isPending}
+                >
+                <SelectTrigger className="glass-sm w-full justify-between" data-testid="select-priority-change">
+                  <span className="truncate text-sm font-medium">
+                    {priorityOption?.label ?? currentPriority}
+                  </span>
+                </SelectTrigger>
+                  <SelectContent className="glass max-h-60">
+                    {PRIORITY_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value} className="py-2">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-medium">{option.label}</span>
+                          <span className="text-xs text-muted-foreground">{option.description}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </Card>

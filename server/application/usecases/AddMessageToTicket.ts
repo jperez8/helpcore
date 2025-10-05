@@ -24,14 +24,18 @@ export class AddMessageToTicketUseCase {
       });
     }
 
-    await this.activityLogRepository.create({
-      ticketId: ticket.id,
-      actor: messageData.authorName || "Usuario",
-      actorId: messageData.authorId,
-      action: "respondió al ticket",
-      entity: `#${ticket.ticketNumber}`,
-      metadata: { messageId: message.id },
-    });
+    try {
+      await this.activityLogRepository.create({
+        ticketId: ticket.id,
+        actor: messageData.authorName || "Usuario",
+        actorId: messageData.authorId,
+        action: "respondió al ticket",
+        entity: `#${ticket.ticketNumber}`,
+        metadata: { messageId: message.id },
+      });
+    } catch (error) {
+      console.error("Failed to persist message activity log", error);
+    }
 
     return message;
   }
