@@ -1,0 +1,119 @@
+{
+  "nav": {
+    "dashboard": "Panel",
+    "tickets": "Tickets",
+    "activity": "Actividad",
+    "settings": "Ajustes",
+    "logout": "Cerrar sesión"
+  },
+  "auth": {
+    "login": "Iniciar sesión",
+    "signup": "Registrarse",
+    "email": "Email",
+    "password": "Contraseña",
+    "fullName": "Nombre completo",
+    "welcomeBack": "Bienvenido de vuelta",
+    "createAccount": "Crear cuenta",
+    "loginButton": "Iniciar sesión",
+    "signupButton": "Registrarse",
+    "alreadyHaveAccount": "¿Ya tienes una cuenta?",
+    "dontHaveAccount": "¿No tienes una cuenta?",
+    "loggingIn": "Iniciando sesión...",
+    "signingUp": "Registrando..."
+  },
+  "dashboard": {
+    "title": "Panel de Control",
+    "welcome": "Bienvenido al sistema de soporte",
+    "metrics": {
+      "totalTickets": "Total de Tickets",
+      "openTickets": "Tickets Abiertos",
+      "avgResponseTime": "Tiempo Promedio de Respuesta",
+      "satisfaction": "Satisfacción"
+    },
+    "recentActivity": "Actividad Reciente",
+    "viewAll": "Ver todo",
+    "ticketCreated": "Ticket creado",
+    "statusChanged": "Estado cambiado",
+    "messageAdded": "Mensaje agregado"
+  },
+  "tickets": {
+    "title": "Tickets",
+    "newTicket": "Nuevo Ticket",
+    "allTickets": "Todos los tickets",
+    "status": {
+      "all": "Todos",
+      "open": "Abiertos",
+      "pending": "Pendientes",
+      "resolved": "Resueltos",
+      "closed": "Cerrados"
+    },
+    "priority": {
+      "all": "Todas",
+      "low": "Baja",
+      "medium": "Media",
+      "high": "Alta",
+      "urgent": "Urgente"
+    },
+    "channel": {
+      "all": "Todos",
+      "web": "Web",
+      "email": "Email",
+      "whatsapp": "WhatsApp",
+      "phone": "Teléfono"
+    },
+    "details": {
+      "subject": "Asunto",
+      "customer": "Cliente",
+      "assignee": "Asignado a",
+      "created": "Creado",
+      "updated": "Actualizado",
+      "messages": "Mensajes",
+      "activity": "Actividad",
+      "sendMessage": "Enviar mensaje",
+      "typeMessage": "Escribe tu mensaje...",
+      "updateStatus": "Actualizar estado",
+      "assignTo": "Asignar a",
+      "unassigned": "Sin asignar"
+    },
+    "create": {
+      "title": "Crear Nuevo Ticket",
+      "subject": "Asunto",
+      "customerName": "Nombre del cliente",
+      "customerEmail": "Email del cliente",
+      "customerPhone": "Teléfono del cliente",
+      "priority": "Prioridad",
+      "channel": "Canal",
+      "initialMessage": "Mensaje inicial",
+      "create": "Crear Ticket",
+      "creating": "Creando..."
+    },
+    "noTickets": "No hay tickets disponibles",
+    "loading": "Cargando tickets..."
+  },
+  "activity": {
+    "title": "Registro de Actividad",
+    "noActivity": "No hay actividad reciente",
+    "loading": "Cargando actividad..."
+  },
+  "settings": {
+    "title": "Ajustes",
+    "language": "Idioma",
+    "theme": "Tema",
+    "profile": "Perfil",
+    "notifications": "Notificaciones",
+    "preferences": "Preferencias"
+  },
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "confirm": "Confirmar",
+    "close": "Cerrar"
+  }
+}

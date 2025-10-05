@@ -1,0 +1,119 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "tickets": "Tickets",
+    "activity": "Activity",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "auth": {
+    "login": "Login",
+    "signup": "Sign Up",
+    "email": "Email",
+    "password": "Password",
+    "fullName": "Full Name",
+    "welcomeBack": "Welcome Back",
+    "createAccount": "Create Account",
+    "loginButton": "Login",
+    "signupButton": "Sign Up",
+    "alreadyHaveAccount": "Already have an account?",
+    "dontHaveAccount": "Don't have an account?",
+    "loggingIn": "Logging in...",
+    "signingUp": "Signing up..."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome to the support system",
+    "metrics": {
+      "totalTickets": "Total Tickets",
+      "openTickets": "Open Tickets",
+      "avgResponseTime": "Avg Response Time",
+      "satisfaction": "Satisfaction"
+    },
+    "recentActivity": "Recent Activity",
+    "viewAll": "View All",
+    "ticketCreated": "Ticket created",
+    "statusChanged": "Status changed",
+    "messageAdded": "Message added"
+  },
+  "tickets": {
+    "title": "Tickets",
+    "newTicket": "New Ticket",
+    "allTickets": "All tickets",
+    "status": {
+      "all": "All",
+      "open": "Open",
+      "pending": "Pending",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "priority": {
+      "all": "All",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "channel": {
+      "all": "All",
+      "web": "Web",
+      "email": "Email",
+      "whatsapp": "WhatsApp",
+      "phone": "Phone"
+    },
+    "details": {
+      "subject": "Subject",
+      "customer": "Customer",
+      "assignee": "Assignee",
+      "created": "Created",
+      "updated": "Updated",
+      "messages": "Messages",
+      "activity": "Activity",
+      "sendMessage": "Send message",
+      "typeMessage": "Type your message...",
+      "updateStatus": "Update status",
+      "assignTo": "Assign to",
+      "unassigned": "Unassigned"
+    },
+    "create": {
+      "title": "Create New Ticket",
+      "subject": "Subject",
+      "customerName": "Customer name",
+      "customerEmail": "Customer email",
+      "customerPhone": "Customer phone",
+      "priority": "Priority",
+      "channel": "Channel",
+      "initialMessage": "Initial message",
+      "create": "Create Ticket",
+      "creating": "Creating..."
+    },
+    "noTickets": "No tickets available",
+    "loading": "Loading tickets..."
+  },
+  "activity": {
+    "title": "Activity Log",
+    "noActivity": "No recent activity",
+    "loading": "Loading activity..."
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "profile": "Profile",
+    "notifications": "Notifications",
+    "preferences": "Preferences"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "filter": "Filter",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "close": "Close"
+  }
+}
