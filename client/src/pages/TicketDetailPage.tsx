@@ -36,7 +36,7 @@ export default function TicketDetailPage({ onBack }: TicketDetailPageProps) {
   const queryClient = useQueryClient();
 
   const { data, isLoading, isError, error } = useQuery<{ ticket: Ticket; messages: Message[] }>({
-    queryKey: ["/api/tickets", id],
+    queryKey: [`/api/tickets/${id}`],
     enabled: !!id,
   });
 
@@ -45,7 +45,7 @@ export default function TicketDetailPage({ onBack }: TicketDetailPageProps) {
       return await apiRequest("POST", `/api/tickets/${id}/messages`, { text });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tickets", id] });
+      queryClient.invalidateQueries({ queryKey: [`/api/tickets/${id}`] });
       setReplyText("");
       toast({
         title: t("common.success"),
@@ -90,14 +90,6 @@ export default function TicketDetailPage({ onBack }: TicketDetailPageProps) {
 
   const { ticket, messages } = data;
 
-  const getChannelIcon = (channel: string) => {
-    switch (channel) {
-      case "whatsapp": return "💬";
-      case "email": return "📧";
-      case "web": return "🌐";
-      default: return "📱";
-    }
-  };
 
   const getUserInitials = (name: string) => {
     return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
@@ -124,7 +116,7 @@ export default function TicketDetailPage({ onBack }: TicketDetailPageProps) {
           <StatusBadge status={ticket.status as any} />
           <PriorityBadge priority={ticket.priority as any} />
           <Badge variant="outline" className="glass-sm">
-            {getChannelIcon(ticket.channel)} {ticket.channel}
+            {ticket.channel}
           </Badge>
         </div>
       </motion.div>
