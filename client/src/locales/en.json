@@ -16,10 +16,16 @@
     "createAccount": "Create Account",
     "loginButton": "Login",
     "signupButton": "Sign Up",
-    "alreadyHaveAccount": "Already have an account?",
-    "dontHaveAccount": "Don't have an account?",
+    "alreadyHaveAccount": "Already have an account? Login",
+    "dontHaveAccount": "Don't have an account? Sign up",
     "loggingIn": "Logging in...",
-    "signingUp": "Signing up..."
+    "signingUp": "Signing up...",
+    "loginSuccess": "Login successful",
+    "loginError": "Invalid credentials",
+    "signupError": "Could not create account",
+    "accountCreated": "Your account has been created successfully",
+    "logoutSuccess": "Successfully logged out",
+    "logoutError": "Could not log out"
   },
   "dashboard": {
     "title": "Dashboard",

@@ -9,17 +9,23 @@
   "auth": {
     "login": "Iniciar sesión",
     "signup": "Registrarse",
-    "email": "Email",
+    "email": "Correo electrónico",
     "password": "Contraseña",
     "fullName": "Nombre completo",
     "welcomeBack": "Bienvenido de vuelta",
     "createAccount": "Crear cuenta",
     "loginButton": "Iniciar sesión",
     "signupButton": "Registrarse",
-    "alreadyHaveAccount": "¿Ya tienes una cuenta?",
-    "dontHaveAccount": "¿No tienes una cuenta?",
+    "alreadyHaveAccount": "¿Ya tienes cuenta? Inicia sesión",
+    "dontHaveAccount": "¿No tienes cuenta? Regístrate",
     "loggingIn": "Iniciando sesión...",
-    "signingUp": "Registrando..."
+    "signingUp": "Creando cuenta...",
+    "loginSuccess": "Sesión iniciada",
+    "loginError": "Credenciales inválidas",
+    "signupError": "No se pudo crear la cuenta",
+    "accountCreated": "Tu cuenta ha sido creada exitosamente",
+    "logoutSuccess": "Has cerrado sesión exitosamente",
+    "logoutError": "No se pudo cerrar la sesión"
   },
   "dashboard": {
     "title": "Panel de Control",

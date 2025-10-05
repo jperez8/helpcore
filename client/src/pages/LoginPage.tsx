@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface LoginPageProps {
   onLogin: () => void;
@@ -20,6 +21,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
   const [fullName, setFullName] = useState("");
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,21 +31,21 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       if (isSignUp) {
         await signUp(email, password, fullName);
         toast({
-          title: "Cuenta creada",
-          description: "Tu cuenta ha sido creada exitosamente. Por favor verifica tu correo electrónico.",
+          title: t('auth.createAccount'),
+          description: t('auth.accountCreated'),
         });
       } else {
         await signIn(email, password);
         toast({
-          title: "Sesión iniciada",
-          description: "Bienvenido de nuevo",
+          title: t('auth.loginSuccess'),
+          description: t('auth.welcomeBack'),
         });
       }
       onLogin();
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || (isSignUp ? "No se pudo crear la cuenta" : "Credenciales inválidas"),
+        title: t('common.error'),
+        description: error.message || (isSignUp ? t('auth.signupError') : t('auth.loginError')),
         variant: "destructive",
       });
     } finally {
@@ -62,21 +64,21 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         <Card className="glass p-8 border-white/20">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent mb-2">
-              Sistema de Soporte
+              {t('dashboard.title')}
             </h1>
             <p className="text-muted-foreground">
-              {isSignUp ? "Crea tu cuenta" : "Inicia sesión para continuar"}
+              {isSignUp ? t('auth.createAccount') : t('auth.welcomeBack')}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {isSignUp && (
               <div className="space-y-2">
-                <Label htmlFor="fullName">Nombre completo</Label>
+                <Label htmlFor="fullName">{t('auth.fullName')}</Label>
                 <Input
                   id="fullName"
                   type="text"
-                  placeholder="Juan Pérez"
+                  placeholder={t('auth.fullName')}
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   className="glass border-white/10"
@@ -87,11 +89,11 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Correo electrónico</Label>
+              <Label htmlFor="email">{t('auth.email')}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="tu@ejemplo.com"
+                placeholder="email@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="glass border-white/10"
@@ -101,7 +103,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
+              <Label htmlFor="password">{t('auth.password')}</Label>
               <Input
                 id="password"
                 type="password"
@@ -119,10 +121,10 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {isSignUp ? "Creando cuenta..." : "Iniciando sesión..."}
+                  {isSignUp ? t('auth.signingUp') : t('auth.loggingIn')}
                 </>
               ) : (
-                isSignUp ? "Crear cuenta" : "Iniciar sesión"
+                isSignUp ? t('auth.signupButton') : t('auth.loginButton')
               )}
             </Button>
           </form>
@@ -134,7 +136,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               className="text-sm text-primary hover:underline"
               data-testid="button-toggle-signup"
             >
-              {isSignUp ? "¿Ya tienes cuenta? Inicia sesión" : "¿No tienes cuenta? Regístrate"}
+              {isSignUp ? t('auth.alreadyHaveAccount') : t('auth.dontHaveAccount')}
             </button>
           </div>
         </Card>

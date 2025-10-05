@@ -6,6 +6,7 @@ import { useTheme } from "./ThemeProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { useTranslation } from "react-i18next";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,18 +24,19 @@ export default function Navbar({ onSearch }: NavbarProps) {
   const { theme, toggleTheme } = useTheme();
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const handleLogout = async () => {
     try {
       await signOut();
       toast({
-        title: "Sesión cerrada",
-        description: "Has cerrado sesión exitosamente",
+        title: t('nav.logout'),
+        description: t('auth.logoutSuccess'),
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "No se pudo cerrar la sesión",
+        title: t('common.error'),
+        description: t('auth.logoutError'),
         variant: "destructive",
       });
     }
@@ -54,12 +56,12 @@ export default function Navbar({ onSearch }: NavbarProps) {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 flex-1">
           <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-            Soporte
+            {t('dashboard.title')}
           </h1>
           <div className="relative flex-1 max-w-md hidden md:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar tickets..."
+              placeholder={t('common.search')}
               className="pl-10 glass border-white/10"
               onChange={(e) => onSearch?.(e.target.value)}
               data-testid="input-search"
@@ -104,12 +106,12 @@ export default function Navbar({ onSearch }: NavbarProps) {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem data-testid="menu-item-profile">Perfil</DropdownMenuItem>
-              <DropdownMenuItem data-testid="menu-item-settings">Configuración</DropdownMenuItem>
+              <DropdownMenuItem data-testid="menu-item-profile">{t('settings.profile')}</DropdownMenuItem>
+              <DropdownMenuItem data-testid="menu-item-settings">{t('settings.title')}</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} data-testid="menu-item-logout">
                 <LogOut className="mr-2 h-4 w-4" />
-                Cerrar sesión
+                {t('nav.logout')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
