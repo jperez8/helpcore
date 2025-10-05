@@ -1,0 +1,107 @@
+# Sistema de Gestión de Tickets/Soporte
+
+## Overview
+Full-stack ticket/support management system with webhook integration for n8n, manual ticket creation, glassmorphism UI, and hexagonal architecture backend.
+
+## Recent Changes (October 2025)
+- ✅ Implemented glassmorphism frontend with all core pages (login, dashboard, tickets, activity, settings)
+- ✅ Created reusable React components with framer-motion animations
+- ✅ Implemented hexagonal architecture backend with domain, application, and infrastructure layers
+- ✅ Created REST API endpoints for tickets, messages, activity logs, and users
+- ✅ Implemented webhook endpoints for n8n integration (inbound and test endpoints)
+- ✅ Connected frontend to backend using React Query
+- ✅ Using in-memory storage (can switch to Supabase database when configured)
+
+## Tech Stack
+
+### Frontend
+- React 18 with TypeScript
+- Wouter for routing
+- TanStack Query (React Query) for data fetching and caching
+- Shadcn UI + Tailwind CSS for styling
+- Framer Motion for animations
+- Glassmorphism design aesthetic with dark mode support
+
+### Backend
+- Express.js server
+- Hexagonal architecture (Domain → Application → Infrastructure)
+- Drizzle ORM for database
+- Zod for validation
+- In-memory storage with interface for database repositories
+
+### Database
+- PostgreSQL via Supabase (schema ready, using in-memory for development)
+- Tables: users, tickets, messages, activity_logs
+- Drizzle migrations generated and ready
+
+## Project Architecture
+
+### Backend Structure
+```
+server/
+├── domain/
+│   └── repositories/         # Repository interfaces (ports)
+├── application/
+│   └── usecases/            # Business logic
+├── infrastructure/
+│   └── repositories/        # Repository implementations
+├── routes.ts                # API routes
+├── container.ts             # Dependency injection
+└── storage.ts               # In-memory storage implementation
+```
+
+### Frontend Structure
+```
+client/src/
+├── pages/                   # Page components
+├── components/              # Reusable components
+├── lib/                     # Utilities
+└── App.tsx                  # Main app with routing
+```
+
+## API Endpoints
+
+### Tickets
+- `GET /api/tickets` - Get all tickets (with filters: status, priority, assigneeId, channel)
+- `GET /api/tickets/:id` - Get ticket by ID with messages
+- `POST /api/tickets` - Create new ticket
+- `POST /api/tickets/:id/messages` - Add message to ticket
+- `PATCH /api/tickets/:id/status` - Update ticket status
+
+### Activity & Users
+- `GET /api/activity` - Get activity logs
+- `GET /api/users` - Get all users
+
+### Webhooks
+- `POST /webhook/inbound` - Receive tickets from n8n (requires x-api-key header)
+- `POST /webhook/test/inbound` - Create test ticket
+
+## Configuration
+
+### Environment Variables
+- `DATABASE_URL` - Supabase/PostgreSQL connection string (optional, uses in-memory storage if not available)
+- `WEBHOOK_API_KEY` - API key for webhook authentication (defaults to "dev_key_123")
+- `SESSION_SECRET` - Session secret for authentication
+- `PORT` - Server port (default: 5000)
+
+## User Preferences
+- Design: Glassmorphism aesthetic with smooth transitions and skeleton loading states
+- Architecture: Hexagonal (ports & adapters) for backend
+- State Management: React Query for server state (Redux/RTK Query to be added)
+- Language: Spanish interface with English support to be added
+- MVP Approach: Core features first, iterative improvements
+
+## Next Steps
+1. Add authentication with Supabase Auth
+2. Implement Redux Toolkit + RTK Query for complex state management
+3. Add multi-language support (i18n)
+4. Implement outbound webhooks for sending responses back to n8n
+5. Add real-time updates (polling every 15 seconds)
+6. Add comprehensive testing for core features
+7. Switch to Supabase database once properly configured (currently using in-memory storage)
+
+## Notes
+- Using in-memory storage for development due to Supabase SSL certificate configuration requirements
+- All database repository implementations are ready - just need to switch container.ts to use them
+- Frontend components have `data-testid` attributes for testing
+- Webhook authentication uses x-api-key header (configurable via WEBHOOK_API_KEY env var)

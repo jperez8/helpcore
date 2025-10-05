@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import TicketCard from "@/components/TicketCard";
 import SkeletonCard from "@/components/SkeletonCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -10,8 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Plus, Filter } from "lucide-react";
+import { Search, Plus, Filter, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import type { Ticket } from "@shared/schema";
 
 interface TicketListPageProps {
   onTicketClick?: (id: string) => void;
@@ -19,51 +22,22 @@ interface TicketListPageProps {
 }
 
 export default function TicketListPage({ onTicketClick, onCreateTicket }: TicketListPageProps) {
-  const [isLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
 
-  //todo: remove mock functionality
-  const tickets = [
-    {
-      id: "TK-001",
-      subject: "¿Cuánto tarda cambiar la pantalla del iPhone 12?",
-      customer: "Juan Pérez",
-      status: "open" as const,
-      priority: "high" as const,
-      channel: "whatsapp" as const,
-      assignee: "María García",
-      createdAt: new Date(Date.now() - 1000 * 60 * 15),
-    },
-    {
-      id: "TK-002",
-      subject: "Consulta sobre garantía de reparación",
-      customer: "Ana Martínez",
-      status: "pending_customer" as const,
-      priority: "medium" as const,
-      channel: "email" as const,
-      assignee: "Carlos López",
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2),
-    },
-    {
-      id: "TK-003",
-      subject: "Presupuesto para cambio de batería",
-      customer: "Luis Rodríguez",
-      status: "pending_agent" as const,
-      priority: "low" as const,
-      channel: "web" as const,
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5),
-    },
-    {
-      id: "TK-004",
-      subject: "Problema con carga inalámbrica",
-      customer: "Carmen Silva",
-      status: "closed" as const,
-      priority: "medium" as const,
-      channel: "whatsapp" as const,
-      assignee: "María García",
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
-    },
-  ];
+  const { data: tickets = [], isLoading, isError, error, refetch } = useQuery<Ticket[]>({
+    queryKey: ["/api/tickets"],
+    retry: 2,
+  });
+
+  const filteredTickets = tickets.filter(ticket => {
+    const matchesSearch = ticket.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         ticket.customerName.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === "all" || ticket.status === statusFilter;
+    const matchesPriority = priorityFilter === "all" || ticket.priority === priorityFilter;
+    return matchesSearch && matchesStatus && matchesPriority;
+  });
 
   return (
     <div className="space-y-6">
@@ -90,18 +64,19 @@ export default function TicketListPage({ onTicketClick, onCreateTicket }: Ticket
               data-testid="input-search-tickets"
             />
           </div>
-          <Select defaultValue="all">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px] glass-sm" data-testid="select-status">
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
             <SelectContent className="glass">
               <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="open">Abiertos</SelectItem>
-              <SelectItem value="pending">Pendientes</SelectItem>
+              <SelectItem value="pending_agent">Pendiente agente</SelectItem>
+              <SelectItem value="pending_customer">Pendiente cliente</SelectItem>
               <SelectItem value="closed">Cerrados</SelectItem>
             </SelectContent>
           </Select>
-          <Select defaultValue="all">
+          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
             <SelectTrigger className="w-[180px] glass-sm" data-testid="select-priority">
               <SelectValue placeholder="Prioridad" />
             </SelectTrigger>
@@ -130,14 +105,34 @@ export default function TicketListPage({ onTicketClick, onCreateTicket }: Ticket
             <SkeletonCard />
             <SkeletonCard />
           </>
-        ) : (
-          tickets.map((ticket) => (
+        ) : isError ? (
+          <Card className="glass p-8 text-center">
+            <AlertCircle className="h-12 w-12 mx-auto mb-4 text-destructive" />
+            <h3 className="text-lg font-semibold mb-2">Error al cargar tickets</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              {error instanceof Error ? error.message : "No se pudieron cargar los tickets"}
+            </p>
+            <Button onClick={() => refetch()}>Reintentar</Button>
+          </Card>
+        ) : filteredTickets.length > 0 ? (
+          filteredTickets.map((ticket) => (
             <TicketCard
               key={ticket.id}
-              {...ticket}
+              id={ticket.ticketNumber}
+              subject={ticket.subject}
+              customer={ticket.customerName}
+              status={ticket.status as any}
+              priority={ticket.priority as any}
+              channel={ticket.channel as any}
+              assignee={ticket.assigneeId || undefined}
+              createdAt={new Date(ticket.createdAt)}
               onClick={() => onTicketClick?.(ticket.id)}
             />
           ))
+        ) : (
+          <Card className="glass p-8 text-center">
+            <p className="text-muted-foreground">No se encontraron tickets</p>
+          </Card>
         )}
       </motion.div>
     </div>

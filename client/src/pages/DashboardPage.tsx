@@ -1,24 +1,48 @@
+import { useQuery } from "@tanstack/react-query";
 import MetricCard from "@/components/MetricCard";
 import ActivityItem from "@/components/ActivityItem";
+import SkeletonCard from "@/components/SkeletonCard";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { Ticket, Clock, CheckCircle, TrendingUp, MessageSquare, UserPlus, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import type { Ticket as TicketType, ActivityLog } from "@shared/schema";
 
 export default function DashboardPage() {
-  //todo: remove mock functionality
+  const { data: tickets = [], isLoading: ticketsLoading, isError: ticketsError, refetch: refetchTickets } = useQuery<TicketType[]>({
+    queryKey: ["/api/tickets"],
+  });
+
+  const { data: activities = [], isLoading: activitiesLoading, isError: activitiesError, refetch: refetchActivities } = useQuery<ActivityLog[]>({
+    queryKey: ["/api/activity"],
+  });
+
+  const openTickets = tickets.filter(t => t.status === "open").length;
+  const closedToday = tickets.filter(t => {
+    if (!t.closedAt) return false;
+    const today = new Date();
+    const closedDate = new Date(t.closedAt);
+    return closedDate.toDateString() === today.toDateString();
+  }).length;
+
   const metrics = [
-    { title: "Tickets Abiertos", value: 24, icon: Ticket, trend: { value: 12, isPositive: false } },
-    { title: "MTPR Promedio", value: "15m", icon: Clock, trend: { value: 8, isPositive: true } },
-    { title: "Resueltos Hoy", value: 18, icon: CheckCircle, trend: { value: 5, isPositive: true } },
-    { title: "SLA Cumplido", value: "94%", icon: TrendingUp },
+    { title: "Tickets Abiertos", value: openTickets, icon: Ticket },
+    { title: "Total Tickets", value: tickets.length, icon: Clock },
+    { title: "Resueltos Hoy", value: closedToday, icon: CheckCircle },
+    { title: "Pendientes", value: tickets.filter(t => t.status === "pending_agent" || t.status === "pending_customer").length, icon: TrendingUp },
   ];
 
-  const activities = [
-    { actor: "María García", action: "respondió al ticket", entity: "#TK-001", timestamp: new Date(Date.now() - 1000 * 60 * 5), icon: MessageSquare },
-    { actor: "Carlos López", action: "fue asignado al ticket", entity: "#TK-002", timestamp: new Date(Date.now() - 1000 * 60 * 15), icon: UserPlus },
-    { actor: "Ana Martínez", action: "cerró el ticket", entity: "#TK-003", timestamp: new Date(Date.now() - 1000 * 60 * 30), icon: CheckCircle },
-    { actor: "Sistema", action: "cambió la prioridad del ticket", entity: "#TK-004", timestamp: new Date(Date.now() - 1000 * 60 * 60), icon: AlertCircle },
-  ];
+  const activityItems = activities.slice(0, 4).map(activity => ({
+    actor: activity.actor,
+    action: activity.action,
+    entity: activity.entity,
+    timestamp: new Date(activity.createdAt),
+    icon: activity.action.includes("respondió") ? MessageSquare :
+          activity.action.includes("asignado") ? UserPlus :
+          activity.action.includes("cerró") || activity.action.includes("creó") ? CheckCircle :
+          AlertCircle,
+  }));
 
   return (
     <div className="space-y-6">
@@ -32,18 +56,49 @@ export default function DashboardPage() {
       </motion.div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {metrics.map((metric, i) => (
-          <MetricCard key={i} {...metric} />
-        ))}
+        {ticketsLoading ? (
+          <>
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </>
+        ) : ticketsError ? (
+          <Card className="glass p-6 col-span-full text-center">
+            <AlertCircle className="h-12 w-12 mx-auto mb-4 text-destructive" />
+            <p className="text-sm text-muted-foreground mb-4">Error al cargar métricas</p>
+            <Button onClick={() => refetchTickets()}>Reintentar</Button>
+          </Card>
+        ) : (
+          metrics.map((metric, i) => (
+            <MetricCard key={i} {...metric} />
+          ))
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="glass p-6 lg:col-span-2">
           <h3 className="text-lg font-semibold mb-4">Actividad Reciente</h3>
           <div className="space-y-3">
-            {activities.map((activity, i) => (
-              <ActivityItem key={i} {...activity} />
-            ))}
+            {activitiesLoading ? (
+              <>
+                <Skeleton className="h-16 w-full glass-sm" />
+                <Skeleton className="h-16 w-full glass-sm" />
+                <Skeleton className="h-16 w-full glass-sm" />
+              </>
+            ) : activitiesError ? (
+              <div className="text-center py-8">
+                <AlertCircle className="h-12 w-12 mx-auto mb-4 text-destructive" />
+                <p className="text-sm text-muted-foreground mb-4">Error al cargar actividad</p>
+                <Button onClick={() => refetchActivities()} size="sm">Reintentar</Button>
+              </div>
+            ) : activityItems.length > 0 ? (
+              activityItems.map((activity, i) => (
+                <ActivityItem key={i} {...activity} />
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">No hay actividad reciente</p>
+            )}
           </div>
         </Card>
 

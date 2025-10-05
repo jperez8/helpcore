@@ -1,4 +1,7 @@
+import { useQuery } from "@tanstack/react-query";
 import ActivityItem from "@/components/ActivityItem";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -9,19 +12,25 @@ import {
 } from "@/components/ui/select";
 import { MessageSquare, UserPlus, CheckCircle, AlertCircle, Edit, Trash } from "lucide-react";
 import { motion } from "framer-motion";
+import type { ActivityLog } from "@shared/schema";
 
 export default function ActivityLogPage() {
-  //todo: remove mock functionality
-  const activities = [
-    { actor: "María García", action: "respondió al ticket", entity: "#TK-001", timestamp: new Date(Date.now() - 1000 * 60 * 5), icon: MessageSquare },
-    { actor: "Carlos López", action: "fue asignado al ticket", entity: "#TK-002", timestamp: new Date(Date.now() - 1000 * 60 * 15), icon: UserPlus },
-    { actor: "Ana Martínez", action: "cerró el ticket", entity: "#TK-003", timestamp: new Date(Date.now() - 1000 * 60 * 30), icon: CheckCircle },
-    { actor: "Sistema", action: "cambió la prioridad del ticket", entity: "#TK-004", timestamp: new Date(Date.now() - 1000 * 60 * 60), icon: AlertCircle },
-    { actor: "María García", action: "actualizó el estado del ticket", entity: "#TK-005", timestamp: new Date(Date.now() - 1000 * 60 * 90), icon: Edit },
-    { actor: "Carlos López", action: "eliminó el comentario del ticket", entity: "#TK-006", timestamp: new Date(Date.now() - 1000 * 60 * 120), icon: Trash },
-    { actor: "Sistema", action: "creó un nuevo ticket desde webhook", entity: "#TK-007", timestamp: new Date(Date.now() - 1000 * 60 * 180), icon: MessageSquare },
-    { actor: "Ana Martínez", action: "respondió al ticket", entity: "#TK-008", timestamp: new Date(Date.now() - 1000 * 60 * 240), icon: MessageSquare },
-  ];
+  const { data: activities = [], isLoading, isError, refetch } = useQuery<ActivityLog[]>({
+    queryKey: ["/api/activity"],
+  });
+
+  const activityItems = activities.map(activity => ({
+    actor: activity.actor,
+    action: activity.action,
+    entity: activity.entity,
+    timestamp: new Date(activity.createdAt),
+    icon: activity.action.includes("respondió") ? MessageSquare :
+          activity.action.includes("asignado") ? UserPlus :
+          activity.action.includes("cerró") || activity.action.includes("creó") ? CheckCircle :
+          activity.action.includes("actualizó") || activity.action.includes("cambió") ? Edit :
+          activity.action.includes("eliminó") ? Trash :
+          AlertCircle,
+  }));
 
   return (
     <div className="space-y-6">
@@ -71,9 +80,28 @@ export default function ActivityLogPage() {
         transition={{ duration: 0.3, delay: 0.1 }}
         className="space-y-3"
       >
-        {activities.map((activity, i) => (
-          <ActivityItem key={i} {...activity} />
-        ))}
+        {isLoading ? (
+          <>
+            <Skeleton className="h-20 w-full glass-sm" />
+            <Skeleton className="h-20 w-full glass-sm" />
+            <Skeleton className="h-20 w-full glass-sm" />
+            <Skeleton className="h-20 w-full glass-sm" />
+            <Skeleton className="h-20 w-full glass-sm" />
+          </>
+        ) : isError ? (
+          <Card className="glass p-8 text-center">
+            <AlertCircle className="h-12 w-12 mx-auto mb-4 text-destructive" />
+            <h3 className="text-lg font-semibold mb-2">Error al cargar actividad</h3>
+            <p className="text-sm text-muted-foreground mb-4">No se pudo cargar el registro de actividad</p>
+            <Button onClick={() => refetch()}>Reintentar</Button>
+          </Card>
+        ) : activityItems.length > 0 ? (
+          activityItems.map((activity, i) => (
+            <ActivityItem key={i} {...activity} />
+          ))
+        ) : (
+          <p className="text-muted-foreground text-center py-8">No hay actividad registrada</p>
+        )}
       </motion.div>
     </div>
   );
