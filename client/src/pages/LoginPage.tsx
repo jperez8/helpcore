@@ -3,19 +3,52 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
+import { Loader2 } from "lucide-react";
 
 interface LoginPageProps {
-  onLogin: (email: string, password: string) => void;
+  onLogin: () => void;
 }
 
 export default function LoginPage({ onLogin }: LoginPageProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const { signIn, signUp } = useAuth();
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin(email, password);
+    setIsLoading(true);
+
+    try {
+      if (isSignUp) {
+        await signUp(email, password, fullName);
+        toast({
+          title: "Cuenta creada",
+          description: "Tu cuenta ha sido creada exitosamente. Por favor verifica tu correo electrónico.",
+        });
+      } else {
+        await signIn(email, password);
+        toast({
+          title: "Sesión iniciada",
+          description: "Bienvenido de nuevo",
+        });
+      }
+      onLogin();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || (isSignUp ? "No se pudo crear la cuenta" : "Credenciales inválidas"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -31,10 +64,28 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent mb-2">
               Sistema de Soporte
             </h1>
-            <p className="text-muted-foreground">Inicia sesión para continuar</p>
+            <p className="text-muted-foreground">
+              {isSignUp ? "Crea tu cuenta" : "Inicia sesión para continuar"}
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {isSignUp && (
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Nombre completo</Label>
+                <Input
+                  id="fullName"
+                  type="text"
+                  placeholder="Juan Pérez"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="glass border-white/10"
+                  required
+                  data-testid="input-fullname"
+                />
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email">Correo electrónico</Label>
               <Input
@@ -59,19 +110,32 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                 onChange={(e) => setPassword(e.target.value)}
                 className="glass border-white/10"
                 required
+                minLength={6}
                 data-testid="input-password"
               />
             </div>
 
-            <Button type="submit" className="w-full" data-testid="button-login">
-              Iniciar sesión
+            <Button type="submit" className="w-full" disabled={isLoading} data-testid="button-login">
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {isSignUp ? "Creando cuenta..." : "Iniciando sesión..."}
+                </>
+              ) : (
+                isSignUp ? "Crear cuenta" : "Iniciar sesión"
+              )}
             </Button>
           </form>
 
           <div className="mt-6 text-center">
-            <a href="#" className="text-sm text-primary hover:underline">
-              ¿Olvidaste tu contraseña?
-            </a>
+            <button
+              type="button"
+              onClick={() => setIsSignUp(!isSignUp)}
+              className="text-sm text-primary hover:underline"
+              data-testid="button-toggle-signup"
+            >
+              {isSignUp ? "¿Ya tienes cuenta? Inicia sesión" : "¿No tienes cuenta? Regístrate"}
+            </button>
           </div>
         </Card>
       </motion.div>

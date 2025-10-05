@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -6,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import AppSidebar from "@/components/AppSidebar";
 import Navbar from "@/components/Navbar";
 import LoginPage from "@/pages/LoginPage";
@@ -17,11 +17,22 @@ import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "@/pages/not-found";
 
 function AppContent() {
-  const [isAuthenticated, setIsAuthenticated] = useState(true); // todo: remove mock functionality
+  const { user, loading } = useAuth();
   const [, setLocation] = useLocation();
 
-  if (!isAuthenticated) {
-    return <LoginPage onLogin={() => setIsAuthenticated(true)} />;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginPage onLogin={() => setLocation("/")} />;
   }
 
   const style = {
@@ -70,12 +81,14 @@ function AppContent() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <TooltipProvider>
-          <AppContent />
-          <Toaster />
-        </TooltipProvider>
-      </ThemeProvider>
+      <AuthProvider>
+        <ThemeProvider>
+          <TooltipProvider>
+            <AppContent />
+            <Toaster />
+          </TooltipProvider>
+        </ThemeProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

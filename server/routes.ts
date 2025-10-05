@@ -2,11 +2,117 @@ import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { insertTicketSchema, insertMessageSchema } from "@shared/schema";
 import { container } from "./container";
+import { supabase } from "./lib/supabase";
+import { requireAuth, optionalAuth } from "./middleware/auth";
 
 const { useCases, repositories } = container;
 
 export function registerRoutes(app: Express) {
-  app.get("/api/tickets", async (req: Request, res: Response) => {
+  app.get("/api/config", (req: Request, res: Response) => {
+    res.json({
+      supabaseUrl: process.env.SUPABASE_URL || '',
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY || '',
+    });
+  });
+
+  app.post("/api/auth/signup", async (req: Request, res: Response) => {
+    try {
+      const { email, password, fullName } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
+      }
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName || '',
+          }
+        }
+      });
+
+      if (error) {
+        return res.status(400).json({ error: error.message });
+      }
+
+      res.status(201).json({
+        user: data.user,
+        session: data.session,
+      });
+    } catch (error) {
+      console.error("Signup error:", error);
+      res.status(500).json({ error: "Failed to create account" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req: Request, res: Response) => {
+    try {
+      const { email, password } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        return res.status(401).json({ error: error.message });
+      }
+
+      res.json({
+        user: data.user,
+        session: data.session,
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ error: "Failed to login" });
+    }
+  });
+
+  app.post("/api/auth/logout", async (req: Request, res: Response) => {
+    try {
+      const authHeader = req.headers.authorization;
+      
+      if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        await supabase.auth.admin.signOut(token);
+      }
+
+      res.json({ message: "Logged out successfully" });
+    } catch (error) {
+      console.error("Logout error:", error);
+      res.status(500).json({ error: "Failed to logout" });
+    }
+  });
+
+  app.get("/api/auth/session", async (req: Request, res: Response) => {
+    try {
+      const authHeader = req.headers.authorization;
+
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: "No token provided" });
+      }
+
+      const token = authHeader.substring(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+
+      if (error || !user) {
+        return res.status(401).json({ error: "Invalid session" });
+      }
+
+      res.json({ user });
+    } catch (error) {
+      console.error("Session validation error:", error);
+      res.status(500).json({ error: "Failed to validate session" });
+    }
+  });
+
+  app.get("/api/tickets", optionalAuth, async (req: Request, res: Response) => {
     try {
       const { status, priority, assigneeId, channel } = req.query;
       const tickets = await useCases.getTickets.execute({

@@ -1,8 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Search, Moon, Sun, Bell } from "lucide-react";
+import { Search, Moon, Sun, Bell, LogOut } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +20,33 @@ interface NavbarProps {
 
 export default function Navbar({ onSearch }: NavbarProps) {
   const { theme, toggleTheme } = useTheme();
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Sesión cerrada",
+        description: "Has cerrado sesión exitosamente",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo cerrar la sesión",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getUserInitials = () => {
+    const fullName = user?.user_metadata?.full_name;
+    if (fullName) {
+      const parts = fullName.split(' ');
+      return parts.map(p => p[0]).join('').toUpperCase().slice(0, 2);
+    }
+    return user?.email?.substring(0, 2).toUpperCase() || 'U';
+  };
 
   return (
     <nav className="glass sticky top-0 z-50 border-b border-white/10">
@@ -57,18 +86,28 @@ export default function Navbar({ onSearch }: NavbarProps) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="glass-sm gap-2" data-testid="button-user-menu">
                 <Avatar className="h-7 w-7">
-                  <AvatarFallback className="text-xs glass">MG</AvatarFallback>
+                  <AvatarFallback className="text-xs glass">{getUserInitials()}</AvatarFallback>
                 </Avatar>
-                <span className="hidden sm:inline text-sm">María García</span>
+                <span className="hidden sm:inline text-sm">
+                  {user?.user_metadata?.full_name || user?.email?.split('@')[0]}
+                </span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="glass w-48">
-              <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
+              <DropdownMenuLabel>
+                <div className="flex flex-col">
+                  <span className="font-semibold">{user?.user_metadata?.full_name || 'Usuario'}</span>
+                  <span className="text-xs text-muted-foreground">{user?.email}</span>
+                </div>
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem data-testid="menu-item-profile">Perfil</DropdownMenuItem>
               <DropdownMenuItem data-testid="menu-item-settings">Configuración</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem data-testid="menu-item-logout">Cerrar sesión</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout} data-testid="menu-item-logout">
+                <LogOut className="mr-2 h-4 w-4" />
+                Cerrar sesión
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
