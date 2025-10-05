@@ -1,41 +1,17 @@
-import { storage } from "./storage";
 import { CreateTicketUseCase } from "./application/usecases/CreateTicket";
 import { GetTicketsUseCase } from "./application/usecases/GetTickets";
 import { GetTicketByIdUseCase } from "./application/usecases/GetTicketById";
 import { AddMessageToTicketUseCase } from "./application/usecases/AddMessageToTicket";
 import { UpdateTicketStatusUseCase } from "./application/usecases/UpdateTicketStatus";
-import { ITicketRepository } from "./domain/repositories/ITicketRepository";
-import { IMessageRepository } from "./domain/repositories/IMessageRepository";
-import { IActivityLogRepository } from "./domain/repositories/IActivityLogRepository";
-import { IUserRepository } from "./domain/repositories/IUserRepository";
+import { TicketRepository } from "./infrastructure/repositories/TicketRepository";
+import { MessageRepository } from "./infrastructure/repositories/MessageRepository";
+import { ActivityLogRepository } from "./infrastructure/repositories/ActivityLogRepository";
+import { UserRepository } from "./infrastructure/repositories/UserRepository";
 
-const ticketRepo: ITicketRepository = {
-  create: storage.tickets.create,
-  findById: storage.tickets.findById,
-  findAll: storage.tickets.findAll,
-  update: storage.tickets.update,
-  delete: async () => {},
-  generateTicketNumber: storage.tickets.generateTicketNumber,
-};
-
-const messageRepo: IMessageRepository = {
-  create: storage.messages.create,
-  findByTicketId: storage.messages.findByTicketId,
-  findById: async () => null,
-};
-
-const activityLogRepo: IActivityLogRepository = {
-  create: storage.activityLogs.create,
-  findAll: storage.activityLogs.findAll,
-  findByTicketId: async () => [],
-};
-
-const userRepo: IUserRepository = {
-  create: storage.users.create,
-  findById: storage.users.findById,
-  findByEmail: async () => null,
-  findAll: storage.users.findAll,
-};
+const ticketRepo = new TicketRepository();
+const messageRepo = new MessageRepository();
+const activityLogRepo = new ActivityLogRepository();
+const userRepo = new UserRepository();
 
 export const container = {
   repositories: {
