@@ -5,6 +5,7 @@ import { Search, Moon, Sun, Bell, LogOut } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,7 +44,7 @@ export default function Navbar({ onSearch }: NavbarProps) {
     const fullName = user?.user_metadata?.full_name;
     if (fullName) {
       const parts = fullName.split(' ');
-      return parts.map(p => p[0]).join('').toUpperCase().slice(0, 2);
+      return parts.map((p: string) => p[0]).join('').toUpperCase().slice(0, 2);
     }
     return user?.email?.substring(0, 2).toUpperCase() || 'U';
   };
@@ -67,6 +68,8 @@ export default function Navbar({ onSearch }: NavbarProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          <LanguageSwitcher />
+          
           <Button
             variant="ghost"
             size="icon"
