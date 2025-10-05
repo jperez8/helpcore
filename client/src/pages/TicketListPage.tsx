@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import TicketCard from "@/components/TicketCard";
 import SkeletonCard from "@/components/SkeletonCard";
+import { CreateTicketDialog } from "@/components/CreateTicketDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -12,16 +13,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Plus, Filter, AlertCircle } from "lucide-react";
+import { Search, Filter, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import type { Ticket } from "@shared/schema";
 
 interface TicketListPageProps {
   onTicketClick?: (id: string) => void;
-  onCreateTicket?: () => void;
 }
 
-export default function TicketListPage({ onTicketClick, onCreateTicket }: TicketListPageProps) {
+export default function TicketListPage({ onTicketClick }: TicketListPageProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
@@ -46,10 +46,7 @@ export default function TicketListPage({ onTicketClick, onCreateTicket }: Ticket
           <h2 className="text-3xl font-bold mb-2">Tickets</h2>
           <p className="text-muted-foreground">Gestiona todas las solicitudes de soporte</p>
         </div>
-        <Button onClick={onCreateTicket} data-testid="button-create-ticket">
-          <Plus className="h-4 w-4 mr-2" />
-          Nuevo Ticket
-        </Button>
+        <CreateTicketDialog />
       </div>
 
       <div className="glass p-4 rounded-lg space-y-4">

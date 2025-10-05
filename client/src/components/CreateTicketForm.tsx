@@ -58,12 +58,9 @@ export function CreateTicketForm({ onSuccess }: CreateTicketFormProps) {
   const createTicketMutation = useMutation({
     mutationFn: async (data: FormData) => {
       const { initialMessage, ...ticketData } = data;
-      const response = await apiRequest("/api/tickets", {
-        method: "POST",
-        body: JSON.stringify({
-          ...ticketData,
-          initialMessage: initialMessage || undefined,
-        }),
+      const response = await apiRequest("POST", "/api/tickets", {
+        ...ticketData,
+        initialMessage: initialMessage || undefined,
       });
       return response;
     },
@@ -161,6 +158,7 @@ export function CreateTicketForm({ onSuccess }: CreateTicketFormProps) {
                   type="tel"
                   placeholder={t("tickets.create.customerPhonePlaceholder")}
                   {...field}
+                  value={field.value || ""}
                   data-testid="input-customer-phone"
                 />
               </FormControl>
