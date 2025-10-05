@@ -16,7 +16,7 @@ export class CreateTicketUseCase {
     const ticket = await this.ticketRepository.create({
       ...ticketData,
       ticketNumber,
-    } as InsertTicket);
+    });
 
     if (initialMessage) {
       const message: InsertMessage = {

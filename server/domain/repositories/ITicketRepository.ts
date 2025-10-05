@@ -1,7 +1,7 @@
 import { Ticket, InsertTicket } from "@shared/schema";
 
 export interface ITicketRepository {
-  create(ticket: InsertTicket): Promise<Ticket>;
+  create(ticket: InsertTicket & { ticketNumber: string }): Promise<Ticket>;
   findById(id: string): Promise<Ticket | null>;
   findAll(filters?: TicketFilters): Promise<Ticket[]>;
   update(id: string, ticket: Partial<InsertTicket>): Promise<Ticket>;

@@ -4,7 +4,7 @@ import { tickets, InsertTicket, Ticket } from "@shared/schema";
 import { ITicketRepository, TicketFilters } from "../../domain/repositories/ITicketRepository";
 
 export class TicketRepository implements ITicketRepository {
-  async create(ticket: InsertTicket): Promise<Ticket> {
+  async create(ticket: InsertTicket & { ticketNumber: string }): Promise<Ticket> {
     const [created] = await db.insert(tickets).values(ticket).returning();
     return created;
   }
