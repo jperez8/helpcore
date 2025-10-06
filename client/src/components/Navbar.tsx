@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -7,6 +8,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
+import type { Ticket as TicketType } from "@shared/schema";
+import { useLocation } from "wouter";
+import SearchResultsPanel from "@/components/SearchResultsPanel";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +30,12 @@ export default function Navbar({ onSearch }: NavbarProps) {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const { t } = useTranslation();
+  const [, navigate] = useLocation();
+  const [query, setQuery] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
+  const { data: tickets = [], isLoading: ticketsLoading } = useQuery<TicketType[]>({
+    queryKey: ["/api/tickets"],
+  });
 
   const handleLogout = async () => {
     try {
@@ -53,6 +64,19 @@ export default function Navbar({ onSearch }: NavbarProps) {
     return user?.email?.substring(0, 2).toUpperCase() || defaultInitial;
   };
 
+  const showResults = isFocused && query.trim().length > 0;
+
+  const handleSelectTicket = (ticketId: string) => {
+    setQuery("");
+    setIsFocused(false);
+    navigate(`/tickets/${ticketId}`);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setQuery(value);
+    onSearch?.(value);
+  };
+
   return (
     <nav className="glass sticky top-0 z-50 border-b border-white/10">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
@@ -63,10 +87,24 @@ export default function Navbar({ onSearch }: NavbarProps) {
           <div className="relative flex-1 max-w-md hidden md:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
+              value={query}
               placeholder={t('common.search')}
               className="pl-10 glass border-white/10"
-              onChange={(e) => onSearch?.(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => {
+                // Delay to allow click events
+                setTimeout(() => setIsFocused(false), 150);
+              }}
               data-testid="input-search"
+            />
+
+            <SearchResultsPanel
+              isOpen={showResults}
+              query={query}
+              tickets={tickets}
+              isLoading={ticketsLoading}
+              onSelect={handleSelectTicket}
             />
           </div>
         </div>

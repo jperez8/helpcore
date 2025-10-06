@@ -331,7 +331,8 @@
     "nextSlide": "Next slide",
     "goToPreviousPage": "Go to previous page",
     "goToNextPage": "Go to next page",
-    "more": "More"
+    "more": "More",
+    "noMatches": "No matches found"
   },
   "languages": {
     "es": "Spanish",

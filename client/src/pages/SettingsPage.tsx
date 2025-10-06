@@ -25,9 +25,6 @@ interface UserFormState {
 
 export default function SettingsPage() {
   const { t } = useTranslation();
-  const [primaryColor, setPrimaryColor] = useState("#1d4ed8");
-  const [secondaryColor, setSecondaryColor] = useState("#7c3aed");
-  const [accentColor, setAccentColor] = useState("#22c55e");
   const { user: authUser, session } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -246,86 +243,11 @@ export default function SettingsPage() {
         <p className="text-muted-foreground">{t("settings.subtitle")}</p>
       </motion.div>
 
-      <Tabs defaultValue="branding" className="space-y-6">
+      <Tabs defaultValue="sla" className="space-y-6">
         <TabsList className="glass">
-          <TabsTrigger value="branding" data-testid="tab-branding">{t("settings.tabs.branding")}</TabsTrigger>
           <TabsTrigger value="sla" data-testid="tab-sla">{t("settings.tabs.sla")}</TabsTrigger>
-          <TabsTrigger value="webhooks" data-testid="tab-webhooks">{t("settings.tabs.webhooks")}</TabsTrigger>
           <TabsTrigger value="users" data-testid="tab-users">{t("settings.tabs.users")}</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="branding">
-          <Card className="glass p-6">
-            <h3 className="text-lg font-semibold mb-4">{t("settings.branding.title")}</h3>
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="primary">{t("settings.branding.primaryColor")}</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="primary"
-                      type="color"
-                      value={primaryColor}
-                      onChange={(e) => setPrimaryColor(e.target.value)}
-                      className="h-10 w-20 glass-sm"
-                      data-testid="input-primary-color"
-                    />
-                    <Input
-                      type="text"
-                      value={primaryColor}
-                      onChange={(e) => setPrimaryColor(e.target.value)}
-                      className="flex-1 glass-sm"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="secondary">{t("settings.branding.secondaryColor")}</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="secondary"
-                      type="color"
-                      value={secondaryColor}
-                      onChange={(e) => setSecondaryColor(e.target.value)}
-                      className="h-10 w-20 glass-sm"
-                      data-testid="input-secondary-color"
-                    />
-                    <Input
-                      type="text"
-                      value={secondaryColor}
-                      onChange={(e) => setSecondaryColor(e.target.value)}
-                      className="flex-1 glass-sm"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="accent">{t("settings.branding.accentColor")}</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="accent"
-                      type="color"
-                      value={accentColor}
-                      onChange={(e) => setAccentColor(e.target.value)}
-                      className="h-10 w-20 glass-sm"
-                      data-testid="input-accent-color"
-                    />
-                    <Input
-                      type="text"
-                      value={accentColor}
-                      onChange={(e) => setAccentColor(e.target.value)}
-                      className="flex-1 glass-sm"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <Button data-testid="button-save-branding">{t("settings.branding.save")}</Button>
-                <Button variant="outline" className="glass-sm" data-testid="button-reset-branding">
-                  {t("settings.branding.reset")}
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="sla">
           <Card className="glass p-6">
@@ -361,40 +283,6 @@ export default function SettingsPage() {
                 </div>
               ))}
               <Button data-testid="button-save-sla">{t("settings.sla.save")}</Button>
-            </div>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="webhooks">
-          <Card className="glass p-6">
-            <h3 className="text-lg font-semibold mb-4">{t("settings.webhooks.title")}</h3>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="inbound-key">{t("settings.webhooks.inboundKey")}</Label>
-                <Input
-                  id="inbound-key"
-                  type="text"
-                  placeholder={t("settings.webhooks.inboundPlaceholder")}
-                  className="glass-sm font-mono"
-                  data-testid="input-inbound-key"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="outbound-url">{t("settings.webhooks.outboundUrl")}</Label>
-                <Input
-                  id="outbound-url"
-                  type="url"
-                  placeholder={t("settings.webhooks.outboundPlaceholder")}
-                  className="glass-sm"
-                  data-testid="input-outbound-url"
-                />
-              </div>
-              <div className="flex gap-3">
-                <Button data-testid="button-save-webhooks">{t("settings.webhooks.save")}</Button>
-                <Button variant="outline" className="glass-sm" data-testid="button-test-webhook">
-                  {t("settings.webhooks.test")}
-                </Button>
-              </div>
             </div>
           </Card>
         </TabsContent>

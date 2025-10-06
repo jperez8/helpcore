@@ -331,7 +331,8 @@
     "nextSlide": "Siguiente diapositiva",
     "goToPreviousPage": "Ir a la página anterior",
     "goToNextPage": "Ir a la página siguiente",
-    "more": "Más"
+    "more": "Más",
+    "noMatches": "No se encontraron coincidencias"
   },
   "languages": {
     "es": "Español",
