@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -25,12 +26,17 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 
-const formSchema = insertTicketSchema.extend({
-  customerEmail: z.string().email("Email inválido").optional().or(z.literal("")),
-  initialMessage: z.string().optional(),
-});
+const buildFormSchema = (translate: (key: string) => string) =>
+  insertTicketSchema.extend({
+    customerEmail: z
+      .string()
+      .email({ message: translate("validation.email") })
+      .optional()
+      .or(z.literal("")),
+    initialMessage: z.string().optional(),
+  });
 
-type FormData = z.infer<typeof formSchema>;
+type FormData = z.infer<ReturnType<typeof buildFormSchema>>;
 
 interface CreateTicketFormProps {
   onSuccess?: () => void;
@@ -40,6 +46,7 @@ export function CreateTicketForm({ onSuccess }: CreateTicketFormProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const formSchema = useMemo(() => buildFormSchema(t), [t]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),

@@ -42,13 +42,15 @@ export default function Navbar({ onSearch }: NavbarProps) {
     }
   };
 
+  const defaultInitial = t('common.unknownInitial');
+
   const getUserInitials = () => {
     const fullName = user?.user_metadata?.full_name;
     if (fullName) {
       const parts = fullName.split(' ');
       return parts.map((p: string) => p[0]).join('').toUpperCase().slice(0, 2);
     }
-    return user?.email?.substring(0, 2).toUpperCase() || 'U';
+    return user?.email?.substring(0, 2).toUpperCase() || defaultInitial;
   };
 
   return (
@@ -101,7 +103,7 @@ export default function Navbar({ onSearch }: NavbarProps) {
             <DropdownMenuContent align="end" className="glass w-48">
               <DropdownMenuLabel>
                 <div className="flex flex-col">
-                  <span className="font-semibold">{user?.user_metadata?.full_name || 'Usuario'}</span>
+                  <span className="font-semibold">{user?.user_metadata?.full_name || t('common.userFallback')}</span>
                   <span className="text-xs text-muted-foreground">{user?.email}</span>
                 </div>
               </DropdownMenuLabel>

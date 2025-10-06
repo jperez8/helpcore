@@ -4,7 +4,8 @@
     "tickets": "Tickets",
     "activity": "Actividad",
     "settings": "Ajustes",
-    "logout": "Cerrar sesión"
+    "logout": "Cerrar sesión",
+    "mainMenu": "Menú principal"
   },
   "auth": {
     "login": "Iniciar sesión",
@@ -25,7 +26,9 @@
     "signupError": "No se pudo crear la cuenta",
     "accountCreated": "Tu cuenta ha sido creada exitosamente",
     "logoutSuccess": "Has cerrado sesión exitosamente",
-    "logoutError": "No se pudo cerrar la sesión"
+    "logoutError": "No se pudo cerrar la sesión",
+    "emailPlaceholder": "correo@ejemplo.com",
+    "passwordPlaceholder": "********"
   },
   "dashboard": {
     "title": "Panel de Control",
@@ -34,13 +37,25 @@
       "totalTickets": "Total de Tickets",
       "openTickets": "Tickets Abiertos",
       "avgResponseTime": "Tiempo Promedio de Respuesta",
-      "satisfaction": "Satisfacción"
+      "satisfaction": "Satisfacción",
+      "closedToday": "Resueltos hoy",
+      "pending": "Pendientes"
     },
     "recentActivity": "Actividad Reciente",
     "viewAll": "Ver todo",
     "ticketCreated": "Ticket creado",
     "statusChanged": "Estado cambiado",
-    "messageAdded": "Mensaje agregado"
+    "messageAdded": "Mensaje agregado",
+    "subtitle": "Vista general de tu sistema de soporte",
+    "metricsError": "Error al cargar métricas",
+    "activityError": "Error al cargar actividad",
+    "noActivity": "No hay actividad reciente",
+    "slaPerformance": {
+      "title": "Rendimiento SLA",
+      "firstResponse": "Primera respuesta",
+      "resolution": "Resolución",
+      "satisfaction": "Satisfacción"
+    }
   },
   "tickets": {
     "title": "Tickets",
@@ -51,7 +66,9 @@
       "open": "Abiertos",
       "pending": "Pendientes",
       "resolved": "Resueltos",
-      "closed": "Cerrados"
+      "closed": "Cerrados",
+      "pendingAgent": "Pendiente agente",
+      "pendingCustomer": "Pendiente cliente"
     },
     "priority": {
       "all": "Todas",
@@ -79,7 +96,46 @@
       "typeMessage": "Escribe tu mensaje...",
       "updateStatus": "Actualizar estado",
       "assignTo": "Asignar a",
-      "unassigned": "Sin asignar"
+      "unassigned": "Sin asignar",
+      "noMessages": "No hay mensajes en este ticket",
+      "attach": "Adjuntar",
+      "send": "Enviar",
+      "sending": "Enviando...",
+      "messageSent": "Mensaje enviado correctamente",
+      "messageError": "No se pudo enviar el mensaje",
+      "statusUpdated": "Estado actualizado a {{status}}",
+      "statusUpdateError": "No se pudo actualizar el estado",
+      "priorityUpdated": "Prioridad actualizada a {{priority}}",
+      "priorityUpdateError": "No se pudo actualizar la prioridad",
+      "quickActions": {
+        "title": "Acciones rápidas",
+        "status": "Estado",
+        "priority": "Prioridad"
+      },
+      "statusOptions": {
+        "open": "Abierto",
+        "pending_agent": "Pendiente agente",
+        "pending_customer": "Pendiente cliente",
+        "closed": "Cerrado"
+      },
+      "statusDescriptions": {
+        "open": "El ticket está activo",
+        "pending_agent": "Esperando respuesta del equipo",
+        "pending_customer": "Esperando respuesta del cliente",
+        "closed": "Ticket resuelto"
+      },
+      "priorityOptions": {
+        "low": "Baja",
+        "medium": "Media",
+        "high": "Alta"
+      },
+      "priorityDescriptions": {
+        "low": "Puede esperar",
+        "medium": "Atender pronto",
+        "high": "Atención inmediata"
+      },
+      "agentFallback": "Agente",
+      "customerFallback": "Cliente"
     },
     "create": {
       "title": "Crear Nuevo Ticket",
@@ -103,12 +159,65 @@
       "selectChannel": "Selecciona el canal"
     },
     "noTickets": "No hay tickets disponibles",
-    "loading": "Cargando tickets..."
+    "loading": "Cargando tickets...",
+    "subtitle": "Gestiona todas las solicitudes de soporte",
+    "searchPlaceholder": "Buscar tickets...",
+    "filters": {
+      "status": {
+        "placeholder": "Estado",
+        "all": "Todos",
+        "open": "Abiertos",
+        "pendingAgent": "Pendiente agente",
+        "pendingCustomer": "Pendiente cliente",
+        "closed": "Cerrados"
+      },
+      "priority": {
+        "placeholder": "Prioridad",
+        "all": "Todas",
+        "high": "Alta",
+        "medium": "Media",
+        "low": "Baja"
+      }
+    },
+    "errors": {
+      "loadTitle": "Error al cargar tickets",
+      "loadDescription": "No se pudieron cargar los tickets",
+      "detailTitle": "Error al cargar el ticket",
+      "detailDescription": "No se pudo cargar la información del ticket"
+    },
+    "noResults": "No se encontraron tickets",
+    "messages": {
+      "empty": "No hay mensajes en este ticket"
+    }
   },
   "activity": {
     "title": "Registro de Actividad",
     "noActivity": "No hay actividad reciente",
-    "loading": "Cargando actividad..."
+    "loading": "Cargando actividad...",
+    "subtitle": "Registro de todas las acciones del sistema",
+    "filters": {
+      "eventType": {
+        "placeholder": "Tipo de evento",
+        "all": "Todos los eventos",
+        "created": "Creados",
+        "replied": "Respondidos",
+        "assigned": "Asignados",
+        "statusChanged": "Cambio de estado"
+      },
+      "dateRange": {
+        "placeholder": "Rango de fecha",
+        "today": "Hoy",
+        "week": "Esta semana",
+        "month": "Este mes",
+        "all": "Todo el tiempo"
+      }
+    },
+    "export": "Exportar",
+    "error": {
+      "title": "Error al cargar actividad",
+      "description": "No se pudo cargar el registro de actividad"
+    },
+    "empty": "No hay actividad registrada"
   },
   "settings": {
     "title": "Ajustes",
@@ -116,7 +225,85 @@
     "theme": "Tema",
     "profile": "Perfil",
     "notifications": "Notificaciones",
-    "preferences": "Preferencias"
+    "preferences": "Preferencias",
+    "subtitle": "Personaliza tu sistema de soporte",
+    "tabs": {
+      "branding": "Marca",
+      "sla": "SLA",
+      "webhooks": "Webhooks",
+      "users": "Usuarios"
+    },
+    "branding": {
+      "title": "Personalización de marca",
+      "primaryColor": "Color primario",
+      "secondaryColor": "Color secundario",
+      "accentColor": "Color de acento",
+      "save": "Guardar cambios",
+      "reset": "Restaurar valores por defecto"
+    },
+    "sla": {
+      "title": "Objetivos SLA",
+      "firstResponse": "Primera respuesta (min)",
+      "resolution": "Resolución (min)",
+      "save": "Guardar SLA",
+      "priorities": {
+        "high": "Alta",
+        "medium": "Media",
+        "low": "Baja"
+      }
+    },
+    "webhooks": {
+      "title": "Configuración de webhooks",
+      "inboundKey": "API key de entrada",
+      "outboundUrl": "URL de salida",
+      "inboundPlaceholder": "dev_key_123",
+      "outboundPlaceholder": "https://ejemplo.com/webhook/reply",
+      "save": "Guardar",
+      "test": "Probar conexión"
+    },
+    "users": {
+      "title": "Gestión de usuarios",
+      "add": "Agregar usuario",
+      "loginNeeded": "Inicia sesión para gestionar los usuarios del equipo.",
+      "empty": "No hay usuarios registrados.",
+      "role": {
+        "admin": "Admin",
+        "agent": "Agente"
+      },
+      "edit": "Editar",
+      "restricted": {
+        "title": "Acceso restringido",
+        "description": "Solo los administradores pueden gestionar usuarios"
+      },
+      "noPermissionNote": "Necesitas el rol admin para crear o editar usuarios.",
+      "dialog": {
+        "createTitle": "Agregar usuario",
+        "editTitle": "Editar usuario",
+        "createDescription": "Crea un nuevo miembro del equipo.",
+        "editDescription": "Actualiza los datos del usuario seleccionado."
+      },
+      "form": {
+        "name": "Nombre completo",
+        "email": "Correo electrónico",
+        "role": "Rol",
+        "submitCreate": "Crear",
+        "submitEdit": "Guardar"
+      },
+      "toasts": {
+        "createSuccessTitle": "Usuario creado",
+        "createSuccessDescription": "{{name}} se agregó correctamente",
+        "updateSuccessTitle": "Usuario actualizado",
+        "updateSuccessDescription": "{{name}} se actualizó correctamente",
+        "createErrorTitle": "No se pudo crear el usuario",
+        "updateErrorTitle": "No se pudo actualizar el usuario",
+        "restrictedTitle": "Acceso restringido",
+        "restrictedDescription": "Solo los administradores pueden gestionar usuarios"
+      },
+      "noSessionError": "No hay sesión activa"
+    },
+    "errors": {
+      "requestFailed": "Solicitud fallida"
+    }
   },
   "common": {
     "save": "Guardar",
@@ -129,6 +316,32 @@
     "error": "Error",
     "success": "Éxito",
     "confirm": "Confirmar",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "retry": "Reintentar",
+    "back": "Volver",
+    "toggleSidebar": "Alternar barra lateral",
+    "sidebar": "Barra lateral",
+    "sidebarMobileDescription": "Muestra la barra lateral en móviles.",
+    "userFallback": "Usuario",
+    "unknownInitial": "U",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "morePages": "Más páginas",
+    "previousSlide": "Diapositiva anterior",
+    "nextSlide": "Siguiente diapositiva",
+    "goToPreviousPage": "Ir a la página anterior",
+    "goToNextPage": "Ir a la página siguiente",
+    "more": "Más"
+  },
+  "languages": {
+    "es": "Español",
+    "en": "Inglés"
+  },
+  "validation": {
+    "email": "Correo electrónico inválido"
+  },
+  "notFound": {
+    "title": "404 Página no encontrada",
+    "description": "¿Olvidaste agregar la página al enrutador?"
   }
 }

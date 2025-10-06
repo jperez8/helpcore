@@ -4,7 +4,8 @@
     "tickets": "Tickets",
     "activity": "Activity",
     "settings": "Settings",
-    "logout": "Logout"
+    "logout": "Logout",
+    "mainMenu": "Main Menu"
   },
   "auth": {
     "login": "Login",
@@ -25,7 +26,9 @@
     "signupError": "Could not create account",
     "accountCreated": "Your account has been created successfully",
     "logoutSuccess": "Successfully logged out",
-    "logoutError": "Could not log out"
+    "logoutError": "Could not log out",
+    "emailPlaceholder": "email@example.com",
+    "passwordPlaceholder": "********"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -34,13 +37,25 @@
       "totalTickets": "Total Tickets",
       "openTickets": "Open Tickets",
       "avgResponseTime": "Avg Response Time",
-      "satisfaction": "Satisfaction"
+      "satisfaction": "Satisfaction",
+      "closedToday": "Resolved Today",
+      "pending": "Pending"
     },
     "recentActivity": "Recent Activity",
     "viewAll": "View All",
     "ticketCreated": "Ticket created",
     "statusChanged": "Status changed",
-    "messageAdded": "Message added"
+    "messageAdded": "Message added",
+    "subtitle": "Overview of your support system",
+    "metricsError": "Unable to load metrics",
+    "activityError": "Unable to load activity",
+    "noActivity": "No recent activity",
+    "slaPerformance": {
+      "title": "SLA Performance",
+      "firstResponse": "First response",
+      "resolution": "Resolution",
+      "satisfaction": "Satisfaction"
+    }
   },
   "tickets": {
     "title": "Tickets",
@@ -51,7 +66,9 @@
       "open": "Open",
       "pending": "Pending",
       "resolved": "Resolved",
-      "closed": "Closed"
+      "closed": "Closed",
+      "pendingAgent": "Pending agent",
+      "pendingCustomer": "Pending customer"
     },
     "priority": {
       "all": "All",
@@ -79,7 +96,46 @@
       "typeMessage": "Type your message...",
       "updateStatus": "Update status",
       "assignTo": "Assign to",
-      "unassigned": "Unassigned"
+      "unassigned": "Unassigned",
+      "noMessages": "No messages in this ticket",
+      "attach": "Attach",
+      "send": "Send",
+      "sending": "Sending...",
+      "messageSent": "Message sent successfully",
+      "messageError": "Could not send message",
+      "statusUpdated": "Status updated to {{status}}",
+      "statusUpdateError": "Could not update status",
+      "priorityUpdated": "Priority updated to {{priority}}",
+      "priorityUpdateError": "Could not update priority",
+      "quickActions": {
+        "title": "Quick actions",
+        "status": "Status",
+        "priority": "Priority"
+      },
+      "statusOptions": {
+        "open": "Open",
+        "pending_agent": "Pending agent",
+        "pending_customer": "Pending customer",
+        "closed": "Closed"
+      },
+      "statusDescriptions": {
+        "open": "Ticket is active",
+        "pending_agent": "Waiting for team response",
+        "pending_customer": "Waiting for customer response",
+        "closed": "Ticket resolved"
+      },
+      "priorityOptions": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
+      },
+      "priorityDescriptions": {
+        "low": "Can wait",
+        "medium": "Handle soon",
+        "high": "Needs immediate attention"
+      },
+      "agentFallback": "Agent",
+      "customerFallback": "Customer"
     },
     "create": {
       "title": "Create New Ticket",
@@ -103,12 +159,65 @@
       "selectChannel": "Select channel"
     },
     "noTickets": "No tickets available",
-    "loading": "Loading tickets..."
+    "loading": "Loading tickets...",
+    "subtitle": "Manage all support requests",
+    "searchPlaceholder": "Search tickets...",
+    "filters": {
+      "status": {
+        "placeholder": "Status",
+        "all": "All",
+        "open": "Open",
+        "pendingAgent": "Pending agent",
+        "pendingCustomer": "Pending customer",
+        "closed": "Closed"
+      },
+      "priority": {
+        "placeholder": "Priority",
+        "all": "All",
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      }
+    },
+    "errors": {
+      "loadTitle": "Error loading tickets",
+      "loadDescription": "Tickets could not be loaded",
+      "detailTitle": "Error loading ticket",
+      "detailDescription": "Unable to load ticket information"
+    },
+    "noResults": "No tickets found",
+    "messages": {
+      "empty": "No messages in this ticket"
+    }
   },
   "activity": {
     "title": "Activity Log",
     "noActivity": "No recent activity",
-    "loading": "Loading activity..."
+    "loading": "Loading activity...",
+    "subtitle": "Log of all system actions",
+    "filters": {
+      "eventType": {
+        "placeholder": "Event type",
+        "all": "All events",
+        "created": "Created",
+        "replied": "Replied",
+        "assigned": "Assigned",
+        "statusChanged": "Status change"
+      },
+      "dateRange": {
+        "placeholder": "Date range",
+        "today": "Today",
+        "week": "This week",
+        "month": "This month",
+        "all": "All time"
+      }
+    },
+    "export": "Export",
+    "error": {
+      "title": "Error loading activity",
+      "description": "Could not load the activity log"
+    },
+    "empty": "No activity recorded"
   },
   "settings": {
     "title": "Settings",
@@ -116,7 +225,85 @@
     "theme": "Theme",
     "profile": "Profile",
     "notifications": "Notifications",
-    "preferences": "Preferences"
+    "preferences": "Preferences",
+    "subtitle": "Customize your support system",
+    "tabs": {
+      "branding": "Brand",
+      "sla": "SLA",
+      "webhooks": "Webhooks",
+      "users": "Users"
+    },
+    "branding": {
+      "title": "Brand personalization",
+      "primaryColor": "Primary color",
+      "secondaryColor": "Secondary color",
+      "accentColor": "Accent color",
+      "save": "Save changes",
+      "reset": "Restore defaults"
+    },
+    "sla": {
+      "title": "SLA targets",
+      "firstResponse": "First response (min)",
+      "resolution": "Resolution (min)",
+      "save": "Save SLA",
+      "priorities": {
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      }
+    },
+    "webhooks": {
+      "title": "Webhook configuration",
+      "inboundKey": "Inbound API key",
+      "outboundUrl": "Outbound URL",
+      "inboundPlaceholder": "dev_key_123",
+      "outboundPlaceholder": "https://example.com/webhook/reply",
+      "save": "Save",
+      "test": "Test connection"
+    },
+    "users": {
+      "title": "User management",
+      "add": "Add user",
+      "loginNeeded": "Sign in to manage your team users.",
+      "empty": "No users registered.",
+      "role": {
+        "admin": "Admin",
+        "agent": "Agent"
+      },
+      "edit": "Edit",
+      "restricted": {
+        "title": "Access restricted",
+        "description": "Only administrators can manage users"
+      },
+      "noPermissionNote": "You need the admin role to create or edit users.",
+      "dialog": {
+        "createTitle": "Add user",
+        "editTitle": "Edit user",
+        "createDescription": "Create a new team member.",
+        "editDescription": "Update the selected user's details."
+      },
+      "form": {
+        "name": "Full name",
+        "email": "Email",
+        "role": "Role",
+        "submitCreate": "Create",
+        "submitEdit": "Save"
+      },
+      "toasts": {
+        "createSuccessTitle": "User created",
+        "createSuccessDescription": "{{name}} was added successfully",
+        "updateSuccessTitle": "User updated",
+        "updateSuccessDescription": "{{name}} was updated successfully",
+        "createErrorTitle": "Could not create the user",
+        "updateErrorTitle": "Could not update the user",
+        "restrictedTitle": "Access restricted",
+        "restrictedDescription": "Only administrators can manage users"
+      },
+      "noSessionError": "No active session"
+    },
+    "errors": {
+      "requestFailed": "Request failed"
+    }
   },
   "common": {
     "save": "Save",
@@ -129,6 +316,32 @@
     "error": "Error",
     "success": "Success",
     "confirm": "Confirm",
-    "close": "Close"
+    "close": "Close",
+    "retry": "Retry",
+    "back": "Back",
+    "toggleSidebar": "Toggle sidebar",
+    "sidebar": "Sidebar",
+    "sidebarMobileDescription": "Displays the mobile sidebar.",
+    "userFallback": "User",
+    "unknownInitial": "U",
+    "previous": "Previous",
+    "next": "Next",
+    "morePages": "More pages",
+    "previousSlide": "Previous slide",
+    "nextSlide": "Next slide",
+    "goToPreviousPage": "Go to previous page",
+    "goToNextPage": "Go to next page",
+    "more": "More"
+  },
+  "languages": {
+    "es": "Spanish",
+    "en": "English"
+  },
+  "validation": {
+    "email": "Invalid email address"
+  },
+  "notFound": {
+    "title": "404 Page Not Found",
+    "description": "Did you forget to add the page to the router?"
   }
 }

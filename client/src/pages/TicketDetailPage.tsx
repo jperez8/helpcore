@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -32,17 +32,17 @@ interface TicketDetailPageProps {
 type TicketStatus = "open" | "pending_customer" | "pending_agent" | "closed";
 type TicketPriority = "low" | "medium" | "high";
 
-const STATUS_OPTIONS: Array<{ value: TicketStatus; label: string; description: string }> = [
-  { value: "open", label: "Abierto", description: "El ticket está activo" },
-  { value: "pending_agent", label: "Pendiente Agente", description: "Esperando respuesta del equipo" },
-  { value: "pending_customer", label: "Pendiente Cliente", description: "Esperando respuesta del cliente" },
-  { value: "closed", label: "Cerrado", description: "Ticket resuelto" },
+const STATUS_OPTIONS: Array<{ value: TicketStatus; labelKey: string; descriptionKey: string }> = [
+  { value: "open", labelKey: "tickets.details.statusOptions.open", descriptionKey: "tickets.details.statusDescriptions.open" },
+  { value: "pending_agent", labelKey: "tickets.details.statusOptions.pending_agent", descriptionKey: "tickets.details.statusDescriptions.pending_agent" },
+  { value: "pending_customer", labelKey: "tickets.details.statusOptions.pending_customer", descriptionKey: "tickets.details.statusDescriptions.pending_customer" },
+  { value: "closed", labelKey: "tickets.details.statusOptions.closed", descriptionKey: "tickets.details.statusDescriptions.closed" },
 ];
 
-const PRIORITY_OPTIONS: Array<{ value: TicketPriority; label: string; description: string }> = [
-  { value: "low", label: "Baja", description: "Puede esperar" },
-  { value: "medium", label: "Media", description: "Atender pronto" },
-  { value: "high", label: "Alta", description: "Atención inmediata" },
+const PRIORITY_OPTIONS: Array<{ value: TicketPriority; labelKey: string; descriptionKey: string }> = [
+  { value: "low", labelKey: "tickets.details.priorityOptions.low", descriptionKey: "tickets.details.priorityDescriptions.low" },
+  { value: "medium", labelKey: "tickets.details.priorityOptions.medium", descriptionKey: "tickets.details.priorityDescriptions.medium" },
+  { value: "high", labelKey: "tickets.details.priorityOptions.high", descriptionKey: "tickets.details.priorityDescriptions.high" },
 ];
 
 export default function TicketDetailPage({ onBack }: TicketDetailPageProps) {
@@ -76,21 +76,21 @@ export default function TicketDetailPage({ onBack }: TicketDetailPageProps) {
       setReplyText("");
       toast({
         title: t("common.success"),
-        description: "Mensaje enviado correctamente",
+        description: t("tickets.details.messageSent"),
       });
     },
     onError: () => {
       toast({
         title: t("common.error"),
-        description: "No se pudo enviar el mensaje",
+        description: t("tickets.details.messageError"),
         variant: "destructive",
       });
     },
   });
 
   const actorName = user
-    ? ((user?.user_metadata as { full_name?: string } | undefined)?.full_name || user.email || "Agente")
-    : "Cliente";
+    ? ((user?.user_metadata as { full_name?: string } | undefined)?.full_name || user.email || t("tickets.details.agentFallback"))
+    : t("tickets.details.customerFallback");
   const actorId = user?.id ?? null;
 
   const updateStatusMutation = useMutation<Ticket, Error, TicketStatus>({
@@ -113,13 +113,19 @@ export default function TicketDetailPage({ onBack }: TicketDetailPageProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
       toast({
         title: t("common.success"),
-        description: `Estado actualizado a ${STATUS_OPTIONS.find((opt) => opt.value === updatedTicket.status)?.label ?? updatedTicket.status}`,
+        description: t("tickets.details.statusUpdated", {
+          status: t(
+            STATUS_OPTIONS.find((opt) => opt.value === updatedTicket.status)?.labelKey ?? "tickets.details.statusOptions.open"
+          ),
+        }),
       });
     },
     onError: (mutationError) => {
       toast({
         title: t("common.error"),
-        description: mutationError instanceof Error ? mutationError.message : "No se pudo actualizar el estado",
+        description: mutationError instanceof Error
+          ? mutationError.message
+          : t("tickets.details.statusUpdateError"),
         variant: "destructive",
       });
     },
@@ -148,13 +154,19 @@ export default function TicketDetailPage({ onBack }: TicketDetailPageProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
       toast({
         title: t("common.success"),
-        description: `Prioridad actualizada a ${PRIORITY_OPTIONS.find((opt) => opt.value === updatedTicket.priority)?.label ?? updatedTicket.priority}`,
+        description: t("tickets.details.priorityUpdated", {
+          priority: t(
+            PRIORITY_OPTIONS.find((opt) => opt.value === updatedTicket.priority)?.labelKey ?? "tickets.details.priorityOptions.medium"
+          ),
+        }),
       });
     },
     onError: (mutationError) => {
       toast({
         title: t("common.error"),
-        description: mutationError instanceof Error ? mutationError.message : "No se pudo actualizar la prioridad",
+        description: mutationError instanceof Error
+          ? mutationError.message
+          : t("tickets.details.priorityUpdateError"),
         variant: "destructive",
       });
     },
@@ -181,11 +193,11 @@ export default function TicketDetailPage({ onBack }: TicketDetailPageProps) {
     return (
       <Card className="glass p-8 text-center m-6">
         <AlertCircle className="h-12 w-12 mx-auto mb-4 text-destructive" />
-        <h3 className="text-lg font-semibold mb-2">Error al cargar el ticket</h3>
+        <h3 className="text-lg font-semibold mb-2">{t("tickets.errors.detailTitle")}</h3>
         <p className="text-sm text-muted-foreground mb-4">
-          {error instanceof Error ? error.message : "No se pudo cargar la información del ticket"}
+          {error instanceof Error ? error.message : t("tickets.errors.detailDescription")}
         </p>
-        <Button onClick={onBack}>Volver</Button>
+        <Button onClick={onBack}>{t("common.back")}</Button>
       </Card>
     );
   }
@@ -197,10 +209,29 @@ export default function TicketDetailPage({ onBack }: TicketDetailPageProps) {
     return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
   };
 
+  const statusOptions = useMemo(
+    () => STATUS_OPTIONS.map((option) => ({
+      ...option,
+      label: t(option.labelKey),
+      description: t(option.descriptionKey),
+    })),
+    [t]
+  );
+
+  const priorityOptions = useMemo(
+    () => PRIORITY_OPTIONS.map((option) => ({
+      ...option,
+      label: t(option.labelKey),
+      description: t(option.descriptionKey),
+    })),
+    [t]
+  );
+
   const currentStatus = (pendingStatus ?? ticket.status) as TicketStatus;
   const currentPriority = (pendingPriority ?? ticket.priority) as TicketPriority;
-  const statusOption = STATUS_OPTIONS.find((option) => option.value === currentStatus);
-  const priorityOption = PRIORITY_OPTIONS.find((option) => option.value === currentPriority);
+  const statusOption = statusOptions.find((option) => option.value === currentStatus);
+  const priorityOption = priorityOptions.find((option) => option.value === currentPriority);
+  const channelLabel = t(`tickets.channel.${ticket.channel}`, { defaultValue: ticket.channel });
 
   return (
     <div className="h-full flex flex-col">
@@ -223,7 +254,7 @@ export default function TicketDetailPage({ onBack }: TicketDetailPageProps) {
           <StatusBadge status={ticket.status as any} />
           <PriorityBadge priority={ticket.priority as any} />
           <Badge variant="outline" className="glass-sm">
-            {ticket.channel}
+            {channelLabel}
           </Badge>
         </div>
       </motion.div>
@@ -233,7 +264,7 @@ export default function TicketDetailPage({ onBack }: TicketDetailPageProps) {
           <div className="flex-1 overflow-y-auto p-6">
             {messages.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
-                No hay mensajes en este ticket
+                {t("tickets.details.noMessages")}
               </div>
             ) : (
               messages.map((msg) => (
@@ -268,7 +299,7 @@ export default function TicketDetailPage({ onBack }: TicketDetailPageProps) {
                   disabled
                 >
                   <Paperclip className="h-4 w-4 mr-2" />
-                  Adjuntar
+                  {t("tickets.details.attach")}
                 </Button>
                 <Button 
                   onClick={handleSendReply} 
@@ -276,7 +307,7 @@ export default function TicketDetailPage({ onBack }: TicketDetailPageProps) {
                   disabled={!replyText.trim() || sendMessageMutation.isPending}
                 >
                   <Send className="h-4 w-4 mr-2" />
-                  {sendMessageMutation.isPending ? "Enviando..." : t("tickets.details.sendMessage")}
+                  {sendMessageMutation.isPending ? t("tickets.details.sending") : t("tickets.details.send")}
                 </Button>
               </div>
             </div>
@@ -319,10 +350,10 @@ export default function TicketDetailPage({ onBack }: TicketDetailPageProps) {
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold mb-3">Acciones Rápidas</h3>
+            <h3 className="text-sm font-semibold mb-3">{t("tickets.details.quickActions.title")}</h3>
             <div className="space-y-3">
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Estado</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">{t("tickets.details.quickActions.status")}</p>
                 <Select
                   value={currentStatus}
                   onValueChange={(value) => {
@@ -339,7 +370,7 @@ export default function TicketDetailPage({ onBack }: TicketDetailPageProps) {
                   </span>
                 </SelectTrigger>
                   <SelectContent className="glass max-h-60">
-                    {STATUS_OPTIONS.map((option) => (
+                    {statusOptions.map((option) => (
                       <SelectItem key={option.value} value={option.value} className="py-2">
                         <div className="flex flex-col gap-0.5">
                           <span className="font-medium">{option.label}</span>
@@ -351,7 +382,7 @@ export default function TicketDetailPage({ onBack }: TicketDetailPageProps) {
                 </Select>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Prioridad</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">{t("tickets.details.quickActions.priority")}</p>
                 <Select
                   value={currentPriority}
                   onValueChange={(value) => {
@@ -368,7 +399,7 @@ export default function TicketDetailPage({ onBack }: TicketDetailPageProps) {
                   </span>
                 </SelectTrigger>
                   <SelectContent className="glass max-h-60">
-                    {PRIORITY_OPTIONS.map((option) => (
+                    {priorityOptions.map((option) => (
                       <SelectItem key={option.value} value={option.value} className="py-2">
                         <div className="flex flex-col gap-0.5">
                           <span className="font-medium">{option.label}</span>

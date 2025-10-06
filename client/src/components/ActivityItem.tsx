@@ -1,9 +1,10 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { formatDistanceToNow } from "date-fns";
-import { es } from "date-fns/locale";
+import { enUS, es } from "date-fns/locale";
 import { LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 interface ActivityItemProps {
   actor: string;
@@ -20,6 +21,8 @@ export default function ActivityItem({
   timestamp,
   icon: Icon,
 }: ActivityItemProps) {
+  const { i18n } = useTranslation();
+  const locale = i18n.language.startsWith("es") ? es : enUS;
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
@@ -37,7 +40,7 @@ export default function ActivityItem({
               <span className="font-mono text-xs">{entity}</span>
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              {formatDistanceToNow(timestamp, { addSuffix: true, locale: es })}
+              {formatDistanceToNow(timestamp, { addSuffix: true, locale })}
             </p>
           </div>
         </div>

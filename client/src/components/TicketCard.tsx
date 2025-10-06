@@ -4,8 +4,9 @@ import StatusBadge from "./StatusBadge";
 import PriorityBadge from "./PriorityBadge";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
-import { es } from "date-fns/locale";
+import { enUS, es } from "date-fns/locale";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 type Status = "open" | "pending_customer" | "pending_agent" | "closed";
 type Priority = "low" | "medium" | "high";
@@ -47,6 +48,9 @@ export default function TicketCard({
   createdAt,
   onClick,
 }: TicketCardProps) {
+  const { i18n } = useTranslation();
+  const locale = i18n.language.startsWith("es") ? es : enUS;
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -81,7 +85,7 @@ export default function TicketCard({
               </Avatar>
             )}
             <span className="text-xs text-muted-foreground whitespace-nowrap">
-              {formatDistanceToNow(createdAt, { addSuffix: true, locale: es })}
+              {formatDistanceToNow(createdAt, { addSuffix: true, locale })}
             </span>
           </div>
         </div>

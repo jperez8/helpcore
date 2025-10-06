@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Ticket, Clock, CheckCircle, TrendingUp, MessageSquare, UserPlus, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import type { Ticket as TicketType, ActivityLog } from "@shared/schema";
+import { useTranslation } from "react-i18next";
 
 export default function DashboardPage() {
+  const { t } = useTranslation();
   const { data: tickets = [], isLoading: ticketsLoading, isError: ticketsError, refetch: refetchTickets } = useQuery<TicketType[]>({
     queryKey: ["/api/tickets"],
   });
@@ -27,10 +29,14 @@ export default function DashboardPage() {
   }).length;
 
   const metrics = [
-    { title: "Tickets Abiertos", value: openTickets, icon: Ticket },
-    { title: "Total Tickets", value: tickets.length, icon: Clock },
-    { title: "Resueltos Hoy", value: closedToday, icon: CheckCircle },
-    { title: "Pendientes", value: tickets.filter(t => t.status === "pending_agent" || t.status === "pending_customer").length, icon: TrendingUp },
+    { title: t("dashboard.metrics.openTickets"), value: openTickets, icon: Ticket },
+    { title: t("dashboard.metrics.totalTickets"), value: tickets.length, icon: Clock },
+    { title: t("dashboard.metrics.closedToday"), value: closedToday, icon: CheckCircle },
+    {
+      title: t("dashboard.metrics.pending"),
+      value: tickets.filter(t => t.status === "pending_agent" || t.status === "pending_customer").length,
+      icon: TrendingUp,
+    },
   ];
 
   const activityItems = activities.slice(0, 4).map(activity => ({
@@ -51,8 +57,8 @@ export default function DashboardPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <h2 className="text-3xl font-bold mb-2">Panel de Control</h2>
-        <p className="text-muted-foreground">Vista general de tu sistema de soporte</p>
+        <h2 className="text-3xl font-bold mb-2">{t("dashboard.title")}</h2>
+        <p className="text-muted-foreground">{t("dashboard.subtitle")}</p>
       </motion.div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -66,8 +72,8 @@ export default function DashboardPage() {
         ) : ticketsError ? (
           <Card className="glass p-6 col-span-full text-center">
             <AlertCircle className="h-12 w-12 mx-auto mb-4 text-destructive" />
-            <p className="text-sm text-muted-foreground mb-4">Error al cargar métricas</p>
-            <Button onClick={() => refetchTickets()}>Reintentar</Button>
+            <p className="text-sm text-muted-foreground mb-4">{t("dashboard.metricsError")}</p>
+            <Button onClick={() => refetchTickets()}>{t("common.retry")}</Button>
           </Card>
         ) : (
           metrics.map((metric, i) => (
@@ -78,7 +84,7 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="glass p-6 lg:col-span-2">
-          <h3 className="text-lg font-semibold mb-4">Actividad Reciente</h3>
+          <h3 className="text-lg font-semibold mb-4">{t("dashboard.recentActivity")}</h3>
           <div className="space-y-3">
             {activitiesLoading ? (
               <>
@@ -89,25 +95,25 @@ export default function DashboardPage() {
             ) : activitiesError ? (
               <div className="text-center py-8">
                 <AlertCircle className="h-12 w-12 mx-auto mb-4 text-destructive" />
-                <p className="text-sm text-muted-foreground mb-4">Error al cargar actividad</p>
-                <Button onClick={() => refetchActivities()} size="sm">Reintentar</Button>
+                <p className="text-sm text-muted-foreground mb-4">{t("dashboard.activityError")}</p>
+                <Button onClick={() => refetchActivities()} size="sm">{t("common.retry")}</Button>
               </div>
             ) : activityItems.length > 0 ? (
               activityItems.map((activity, i) => (
                 <ActivityItem key={i} {...activity} />
               ))
             ) : (
-              <p className="text-sm text-muted-foreground">No hay actividad reciente</p>
+              <p className="text-sm text-muted-foreground">{t("dashboard.noActivity")}</p>
             )}
           </div>
         </Card>
 
         <Card className="glass p-6">
-          <h3 className="text-lg font-semibold mb-4">Rendimiento SLA</h3>
+          <h3 className="text-lg font-semibold mb-4">{t("dashboard.slaPerformance.title")}</h3>
           <div className="space-y-4">
             <div>
               <div className="flex justify-between text-sm mb-2">
-                <span>Primera Respuesta</span>
+                <span>{t("dashboard.slaPerformance.firstResponse")}</span>
                 <span className="font-medium">94%</span>
               </div>
               <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -116,7 +122,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <div className="flex justify-between text-sm mb-2">
-                <span>Resolución</span>
+                <span>{t("dashboard.slaPerformance.resolution")}</span>
                 <span className="font-medium">87%</span>
               </div>
               <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -125,7 +131,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <div className="flex justify-between text-sm mb-2">
-                <span>Satisfacción</span>
+                <span>{t("dashboard.slaPerformance.satisfaction")}</span>
                 <span className="font-medium">96%</span>
               </div>
               <div className="h-2 bg-muted rounded-full overflow-hidden">

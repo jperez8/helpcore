@@ -93,7 +93,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               <Input
                 id="email"
                 type="email"
-                placeholder="email@example.com"
+                placeholder={t('auth.emailPlaceholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="glass border-white/10"
@@ -107,7 +107,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               <Input
                 id="password"
                 type="password"
-                placeholder="••••••••"
+                placeholder={t('auth.passwordPlaceholder')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="glass border-white/10"

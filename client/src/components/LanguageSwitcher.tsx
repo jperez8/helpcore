@@ -9,7 +9,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 export function LanguageSwitcher() {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
 
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
@@ -28,13 +28,13 @@ export function LanguageSwitcher() {
           onClick={() => changeLanguage('es')}
           data-testid="button-language-es"
         >
-          Español
+          {t('languages.es')}
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => changeLanguage('en')}
           data-testid="button-language-en"
         >
-          English
+          {t('languages.en')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

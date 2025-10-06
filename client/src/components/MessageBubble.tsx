@@ -1,8 +1,9 @@
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { enUS, es } from "date-fns/locale";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 type AuthorType = "customer" | "agent" | "system";
 
@@ -21,8 +22,11 @@ export default function MessageBubble({
   timestamp,
   attachments,
 }: MessageBubbleProps) {
+  const { i18n, t } = useTranslation();
   const isAgent = authorType === "agent";
   const isSystem = authorType === "system";
+  const locale = i18n.language.startsWith("es") ? es : enUS;
+  const fallbackInitial = t("common.unknownInitial");
 
   if (isSystem) {
     return (
@@ -47,7 +51,7 @@ export default function MessageBubble({
     >
       <Avatar className="h-8 w-8">
         <AvatarFallback className="glass text-xs">
-          {authorName?.split(' ').map(n => n[0]).join('') || '?'}
+          {authorName?.split(' ').map(n => n[0]).join('') || fallbackInitial}
         </AvatarFallback>
       </Avatar>
       <div className={`flex-1 max-w-lg ${isAgent ? 'items-end' : 'items-start'} flex flex-col`}>
@@ -69,7 +73,7 @@ export default function MessageBubble({
           )}
         </Card>
         <span className="text-xs text-muted-foreground mt-1">
-          {format(timestamp, "HH:mm", { locale: es })}
+          {format(timestamp, "HH:mm", { locale })}
         </span>
       </div>
     </motion.div>

@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 type UserRole = "agent" | "admin";
 
@@ -22,12 +23,8 @@ interface UserFormState {
   role: UserRole;
 }
 
-const roleOptions: Array<{ value: UserRole; label: string }> = [
-  { value: "agent", label: "Agente" },
-  { value: "admin", label: "Admin" },
-];
-
 export default function SettingsPage() {
+  const { t } = useTranslation();
   const [primaryColor, setPrimaryColor] = useState("#1d4ed8");
   const [secondaryColor, setSecondaryColor] = useState("#7c3aed");
   const [accentColor, setAccentColor] = useState("#22c55e");
@@ -46,11 +43,19 @@ export default function SettingsPage() {
 
   const authToken = session?.access_token ?? null;
 
+  const roleOptions = useMemo(
+    () => [
+      { value: "agent" as UserRole, label: t("settings.users.role.agent") },
+      { value: "admin" as UserRole, label: t("settings.users.role.admin") },
+    ],
+    [t]
+  );
+
   const getErrorMessage = async (res: Response) => {
     const text = await res.text();
 
     if (!text) {
-      return res.statusText || "Solicitud fallida";
+      return res.statusText || t("settings.errors.requestFailed");
     }
 
     try {
@@ -98,7 +103,7 @@ export default function SettingsPage() {
   const createUserMutation = useMutation<User, Error, UserFormState>({
     mutationFn: async (payload) => {
       if (!authToken) {
-        throw new Error("No hay sesión activa");
+        throw new Error(t("settings.users.noSessionError"));
       }
 
       const response = await fetch("/api/users", {
@@ -119,14 +124,14 @@ export default function SettingsPage() {
     onSuccess: (createdUser) => {
       queryClient.invalidateQueries({ queryKey: ["/api/users", authToken] });
       toast({
-        title: "Usuario creado",
-        description: `${createdUser.name} se agregó correctamente`,
+        title: t("settings.users.toasts.createSuccessTitle"),
+        description: t("settings.users.toasts.createSuccessDescription", { name: createdUser.name }),
       });
       handleUserDialogOpenChange(false);
     },
     onError: (error) => {
       toast({
-        title: "No se pudo crear el usuario",
+        title: t("settings.users.toasts.createErrorTitle"),
         description: error.message,
         variant: "destructive",
       });
@@ -136,7 +141,7 @@ export default function SettingsPage() {
   const updateUserMutation = useMutation<User, Error, { id: string; data: UserFormState }>({
     mutationFn: async ({ id, data }) => {
       if (!authToken) {
-        throw new Error("No hay sesión activa");
+        throw new Error(t("settings.users.noSessionError"));
       }
 
       const response = await fetch(`/api/users/${id}`, {
@@ -157,14 +162,14 @@ export default function SettingsPage() {
     onSuccess: (updatedUser) => {
       queryClient.invalidateQueries({ queryKey: ["/api/users", authToken] });
       toast({
-        title: "Usuario actualizado",
-        description: `${updatedUser.name} se actualizó correctamente`,
+        title: t("settings.users.toasts.updateSuccessTitle"),
+        description: t("settings.users.toasts.updateSuccessDescription", { name: updatedUser.name }),
       });
       handleUserDialogOpenChange(false);
     },
     onError: (error) => {
       toast({
-        title: "No se pudo actualizar el usuario",
+        title: t("settings.users.toasts.updateErrorTitle"),
         description: error.message,
         variant: "destructive",
       });
@@ -213,8 +218,8 @@ export default function SettingsPage() {
 
     if (!isAdmin) {
       toast({
-        title: "Acceso restringido",
-        description: "Solo los administradores pueden gestionar usuarios",
+        title: t("settings.users.toasts.restrictedTitle"),
+        description: t("settings.users.toasts.restrictedDescription"),
         variant: "destructive",
       });
       return;
@@ -237,25 +242,25 @@ export default function SettingsPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <h2 className="text-3xl font-bold mb-2">Configuración</h2>
-        <p className="text-muted-foreground">Personaliza tu sistema de soporte</p>
+        <h2 className="text-3xl font-bold mb-2">{t("settings.title")}</h2>
+        <p className="text-muted-foreground">{t("settings.subtitle")}</p>
       </motion.div>
 
       <Tabs defaultValue="branding" className="space-y-6">
         <TabsList className="glass">
-          <TabsTrigger value="branding" data-testid="tab-branding">Marca</TabsTrigger>
-          <TabsTrigger value="sla" data-testid="tab-sla">SLA</TabsTrigger>
-          <TabsTrigger value="webhooks" data-testid="tab-webhooks">Webhooks</TabsTrigger>
-          <TabsTrigger value="users" data-testid="tab-users">Usuarios</TabsTrigger>
+          <TabsTrigger value="branding" data-testid="tab-branding">{t("settings.tabs.branding")}</TabsTrigger>
+          <TabsTrigger value="sla" data-testid="tab-sla">{t("settings.tabs.sla")}</TabsTrigger>
+          <TabsTrigger value="webhooks" data-testid="tab-webhooks">{t("settings.tabs.webhooks")}</TabsTrigger>
+          <TabsTrigger value="users" data-testid="tab-users">{t("settings.tabs.users")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="branding">
           <Card className="glass p-6">
-            <h3 className="text-lg font-semibold mb-4">Personalización de Marca</h3>
+            <h3 className="text-lg font-semibold mb-4">{t("settings.branding.title")}</h3>
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="primary">Color Primario</Label>
+                  <Label htmlFor="primary">{t("settings.branding.primaryColor")}</Label>
                   <div className="flex gap-2">
                     <Input
                       id="primary"
@@ -274,7 +279,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="secondary">Color Secundario</Label>
+                  <Label htmlFor="secondary">{t("settings.branding.secondaryColor")}</Label>
                   <div className="flex gap-2">
                     <Input
                       id="secondary"
@@ -293,7 +298,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="accent">Color de Acento</Label>
+                  <Label htmlFor="accent">{t("settings.branding.accentColor")}</Label>
                   <div className="flex gap-2">
                     <Input
                       id="accent"
@@ -313,9 +318,9 @@ export default function SettingsPage() {
                 </div>
               </div>
               <div className="flex gap-3">
-                <Button data-testid="button-save-branding">Guardar Cambios</Button>
+                <Button data-testid="button-save-branding">{t("settings.branding.save")}</Button>
                 <Button variant="outline" className="glass-sm" data-testid="button-reset-branding">
-                  Restaurar por Defecto
+                  {t("settings.branding.reset")}
                 </Button>
               </div>
             </div>
@@ -324,70 +329,70 @@ export default function SettingsPage() {
 
         <TabsContent value="sla">
           <Card className="glass p-6">
-            <h3 className="text-lg font-semibold mb-4">Objetivos SLA</h3>
+            <h3 className="text-lg font-semibold mb-4">{t("settings.sla.title")}</h3>
             <div className="space-y-4">
               {[
-                { priority: "Alta", firstReply: "120", resolution: "480" },
-                { priority: "Media", firstReply: "480", resolution: "1440" },
-                { priority: "Baja", firstReply: "1440", resolution: "4320" },
+                { priority: "high", firstReply: "120", resolution: "480" },
+                { priority: "medium", firstReply: "480", resolution: "1440" },
+                { priority: "low", firstReply: "1440", resolution: "4320" },
               ].map((sla) => (
                 <div key={sla.priority} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 glass-sm rounded-lg">
                   <div className="flex items-center">
-                    <span className="font-medium">{sla.priority}</span>
+                    <span className="font-medium">{t(`settings.sla.priorities.${sla.priority}`)}</span>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Primera Respuesta (min)</Label>
+                    <Label className="text-xs">{t("settings.sla.firstResponse")}</Label>
                     <Input
                       type="number"
                       defaultValue={sla.firstReply}
                       className="glass-sm"
-                      data-testid={`input-first-reply-${sla.priority.toLowerCase()}`}
+                      data-testid={`input-first-reply-${sla.priority}`}
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Resolución (min)</Label>
+                    <Label className="text-xs">{t("settings.sla.resolution")}</Label>
                     <Input
                       type="number"
                       defaultValue={sla.resolution}
                       className="glass-sm"
-                      data-testid={`input-resolution-${sla.priority.toLowerCase()}`}
+                      data-testid={`input-resolution-${sla.priority}`}
                     />
                   </div>
                 </div>
               ))}
-              <Button data-testid="button-save-sla">Guardar SLA</Button>
+              <Button data-testid="button-save-sla">{t("settings.sla.save")}</Button>
             </div>
           </Card>
         </TabsContent>
 
         <TabsContent value="webhooks">
           <Card className="glass p-6">
-            <h3 className="text-lg font-semibold mb-4">Configuración de Webhooks</h3>
+            <h3 className="text-lg font-semibold mb-4">{t("settings.webhooks.title")}</h3>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="inbound-key">API Key de Entrada</Label>
+                <Label htmlFor="inbound-key">{t("settings.webhooks.inboundKey")}</Label>
                 <Input
                   id="inbound-key"
                   type="text"
-                  placeholder="dev_key_123"
+                  placeholder={t("settings.webhooks.inboundPlaceholder")}
                   className="glass-sm font-mono"
                   data-testid="input-inbound-key"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="outbound-url">URL de Salida (Outbound)</Label>
+                <Label htmlFor="outbound-url">{t("settings.webhooks.outboundUrl")}</Label>
                 <Input
                   id="outbound-url"
                   type="url"
-                  placeholder="https://ejemplo.com/webhook/reply"
+                  placeholder={t("settings.webhooks.outboundPlaceholder")}
                   className="glass-sm"
                   data-testid="input-outbound-url"
                 />
               </div>
               <div className="flex gap-3">
-                <Button data-testid="button-save-webhooks">Guardar</Button>
+                <Button data-testid="button-save-webhooks">{t("settings.webhooks.save")}</Button>
                 <Button variant="outline" className="glass-sm" data-testid="button-test-webhook">
-                  Probar Conexión
+                  {t("settings.webhooks.test")}
                 </Button>
               </div>
             </div>
@@ -398,20 +403,20 @@ export default function SettingsPage() {
           <Dialog open={isUserDialogOpen} onOpenChange={handleUserDialogOpenChange}>
             <Card className="glass p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Gestión de Usuarios</h3>
+                <h3 className="text-lg font-semibold">{t("settings.users.title")}</h3>
                 <Button
                   onClick={handleOpenCreate}
                   data-testid="button-add-user"
                   disabled={!isAdmin}
                   variant={isAdmin ? "default" : "outline"}
                 >
-                  Agregar Usuario
+                  {t("settings.users.add")}
                 </Button>
               </div>
 
               {!authToken ? (
                 <p className="text-sm text-muted-foreground">
-                  Inicia sesión para gestionar los usuarios del equipo.
+                  {t("settings.users.loginNeeded")}
                 </p>
               ) : usersError ? (
                 <p className="text-sm text-destructive">
@@ -432,7 +437,7 @@ export default function SettingsPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge variant="outline" className="glass-sm capitalize" data-testid={`badge-role-${user.id}`}>
-                            {user.role === "admin" ? "Admin" : "Agente"}
+                            {user.role === "admin" ? t("settings.users.role.admin") : t("settings.users.role.agent")}
                           </Badge>
                           {isAdmin && (
                             <Button
@@ -441,20 +446,20 @@ export default function SettingsPage() {
                               onClick={() => handleOpenEdit(user)}
                               data-testid={`button-edit-user-${user.id}`}
                             >
-                              Editar
+                              {t("settings.users.edit")}
                             </Button>
                           )}
                         </div>
                       </div>
                     ))
                   ) : (
-                    <p className="text-sm text-muted-foreground">No hay usuarios registrados.</p>
+                    <p className="text-sm text-muted-foreground">{t("settings.users.empty")}</p>
                   )}
                 </div>
               )}
               {!isAdmin && authToken && !usersError && (
                 <p className="mt-4 text-xs text-muted-foreground">
-                  Necesitas el rol <span className="font-medium">admin</span> para crear o editar usuarios.
+                  {t("settings.users.noPermissionNote")}
                 </p>
               )}
             </Card>
@@ -462,17 +467,17 @@ export default function SettingsPage() {
             <DialogContent className="glass max-w-md">
               <DialogHeader>
                 <DialogTitle>
-                  {dialogMode === "create" ? "Agregar Usuario" : "Editar Usuario"}
+                  {dialogMode === "create" ? t("settings.users.dialog.createTitle") : t("settings.users.dialog.editTitle")}
                 </DialogTitle>
                 <DialogDescription>
                   {dialogMode === "create"
-                    ? "Crea un nuevo miembro del equipo."
-                    : "Actualiza los datos del usuario seleccionado."}
+                    ? t("settings.users.dialog.createDescription")
+                    : t("settings.users.dialog.editDescription")}
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleUserSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="user-name">Nombre completo</Label>
+                  <Label htmlFor="user-name">{t("settings.users.form.name")}</Label>
                   <Input
                     id="user-name"
                     value={formState.name}
@@ -482,7 +487,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="user-email">Correo electrónico</Label>
+                  <Label htmlFor="user-email">{t("settings.users.form.email")}</Label>
                   <Input
                     id="user-email"
                     type="email"
@@ -493,7 +498,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="user-role">Rol</Label>
+                  <Label htmlFor="user-role">{t("settings.users.form.role")}</Label>
                   <Select
                     value={formState.role}
                     onValueChange={(value) => handleFormChange("role", value)}
@@ -518,11 +523,11 @@ export default function SettingsPage() {
                     onClick={() => handleUserDialogOpenChange(false)}
                     disabled={isSubmitting}
                   >
-                    Cancelar
+                    {t("common.cancel")}
                   </Button>
                   <Button type="submit" disabled={isSubmitting} data-testid="button-submit-user">
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {dialogMode === "create" ? "Crear" : "Guardar"}
+                    {dialogMode === "create" ? t("settings.users.form.submitCreate") : t("settings.users.form.submitEdit")}
                   </Button>
                 </DialogFooter>
               </form>

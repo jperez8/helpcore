@@ -16,12 +16,14 @@ import {
 import { Search, Filter, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import type { Ticket } from "@shared/schema";
+import { useTranslation } from "react-i18next";
 
 interface TicketListPageProps {
   onTicketClick?: (id: string) => void;
 }
 
 export default function TicketListPage({ onTicketClick }: TicketListPageProps) {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
@@ -43,8 +45,8 @@ export default function TicketListPage({ onTicketClick }: TicketListPageProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h2 className="text-3xl font-bold mb-2">Tickets</h2>
-          <p className="text-muted-foreground">Gestiona todas las solicitudes de soporte</p>
+          <h2 className="text-3xl font-bold mb-2">{t("tickets.title")}</h2>
+          <p className="text-muted-foreground">{t("tickets.subtitle")}</p>
         </div>
         <CreateTicketDialog />
       </div>
@@ -54,7 +56,7 @@ export default function TicketListPage({ onTicketClick }: TicketListPageProps) {
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar tickets..."
+              placeholder={t("tickets.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 glass-sm border-white/10"
@@ -63,25 +65,25 @@ export default function TicketListPage({ onTicketClick }: TicketListPageProps) {
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px] glass-sm" data-testid="select-status">
-              <SelectValue placeholder="Estado" />
+              <SelectValue placeholder={t("tickets.filters.status.placeholder")} />
             </SelectTrigger>
             <SelectContent className="glass">
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="open">Abiertos</SelectItem>
-              <SelectItem value="pending_agent">Pendiente agente</SelectItem>
-              <SelectItem value="pending_customer">Pendiente cliente</SelectItem>
-              <SelectItem value="closed">Cerrados</SelectItem>
+              <SelectItem value="all">{t("tickets.filters.status.all")}</SelectItem>
+              <SelectItem value="open">{t("tickets.filters.status.open")}</SelectItem>
+              <SelectItem value="pending_agent">{t("tickets.filters.status.pendingAgent")}</SelectItem>
+              <SelectItem value="pending_customer">{t("tickets.filters.status.pendingCustomer")}</SelectItem>
+              <SelectItem value="closed">{t("tickets.filters.status.closed")}</SelectItem>
             </SelectContent>
           </Select>
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
             <SelectTrigger className="w-[180px] glass-sm" data-testid="select-priority">
-              <SelectValue placeholder="Prioridad" />
+              <SelectValue placeholder={t("tickets.filters.priority.placeholder")} />
             </SelectTrigger>
             <SelectContent className="glass">
-              <SelectItem value="all">Todas</SelectItem>
-              <SelectItem value="high">Alta</SelectItem>
-              <SelectItem value="medium">Media</SelectItem>
-              <SelectItem value="low">Baja</SelectItem>
+              <SelectItem value="all">{t("tickets.filters.priority.all")}</SelectItem>
+              <SelectItem value="high">{t("tickets.filters.priority.high")}</SelectItem>
+              <SelectItem value="medium">{t("tickets.filters.priority.medium")}</SelectItem>
+              <SelectItem value="low">{t("tickets.filters.priority.low")}</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline" size="icon" className="glass-sm" data-testid="button-filters">
@@ -105,11 +107,11 @@ export default function TicketListPage({ onTicketClick }: TicketListPageProps) {
         ) : isError ? (
           <Card className="glass p-8 text-center">
             <AlertCircle className="h-12 w-12 mx-auto mb-4 text-destructive" />
-            <h3 className="text-lg font-semibold mb-2">Error al cargar tickets</h3>
+            <h3 className="text-lg font-semibold mb-2">{t("tickets.errors.loadTitle")}</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              {error instanceof Error ? error.message : "No se pudieron cargar los tickets"}
+              {error instanceof Error ? error.message : t("tickets.errors.loadDescription")}
             </p>
-            <Button onClick={() => refetch()}>Reintentar</Button>
+            <Button onClick={() => refetch()}>{t("common.retry")}</Button>
           </Card>
         ) : filteredTickets.length > 0 ? (
           filteredTickets.map((ticket) => (
@@ -128,7 +130,7 @@ export default function TicketListPage({ onTicketClick }: TicketListPageProps) {
           ))
         ) : (
           <Card className="glass p-8 text-center">
-            <p className="text-muted-foreground">No se encontraron tickets</p>
+            <p className="text-muted-foreground">{t("tickets.noResults")}</p>
           </Card>
         )}
       </motion.div>
