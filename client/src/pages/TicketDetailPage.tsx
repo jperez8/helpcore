@@ -60,6 +60,24 @@ export default function TicketDetailPage({ onBack }: TicketDetailPageProps) {
     enabled: !!id,
   });
 
+  const statusOptions = useMemo(
+    () => STATUS_OPTIONS.map((option) => ({
+      ...option,
+      label: t(option.labelKey),
+      description: t(option.descriptionKey),
+    })),
+    [t]
+  );
+
+  const priorityOptions = useMemo(
+    () => PRIORITY_OPTIONS.map((option) => ({
+      ...option,
+      label: t(option.labelKey),
+      description: t(option.descriptionKey),
+    })),
+    [t]
+  );
+
   const sendMessageMutation = useMutation<Message, Error, string>({
     mutationFn: async (text: string) => {
       const payload = {
@@ -208,24 +226,6 @@ export default function TicketDetailPage({ onBack }: TicketDetailPageProps) {
   const getUserInitials = (name: string) => {
     return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
   };
-
-  const statusOptions = useMemo(
-    () => STATUS_OPTIONS.map((option) => ({
-      ...option,
-      label: t(option.labelKey),
-      description: t(option.descriptionKey),
-    })),
-    [t]
-  );
-
-  const priorityOptions = useMemo(
-    () => PRIORITY_OPTIONS.map((option) => ({
-      ...option,
-      label: t(option.labelKey),
-      description: t(option.descriptionKey),
-    })),
-    [t]
-  );
 
   const currentStatus = (pendingStatus ?? ticket.status) as TicketStatus;
   const currentPriority = (pendingPriority ?? ticket.priority) as TicketPriority;
